@@ -1,0 +1,11 @@
+Location_ID,Name,Type,Latitude,Longitude,City,Loading_Bays
+LOC_001,Chakan Plant,Plant,18.7500,73.8500,Pune,5
+LOC_002,Bhiwandi WH,Warehouse,19.2900,73.0600,Mumbai,8
+LOC_003,Sanand Factory,Plant,22.9900,72.3700,Ahmedabad,6
+LOC_004,Vapi Distributor,Customer,20.3800,72.9100,Vapi,2
+LOC_005,Nashik Depot,Warehouse,19.9900,73.7800,Nashik,4
+LOC_006,Surat Hub,Warehouse,21.1700,72.8300,Surat,5
+LOC_007,Aurangabad Dealer,Customer,19.8700,75.3400,Aurangabad,2
+LOC_008,Baroda Plant,Plant,22.3000,73.1800,Vadodara,4
+LOC_009,Thane Centre,Warehouse,19.2100,72.9700,Thane,3
+LOC_010,Kolhapur Dealer,Customer,16.7000,74.2400,Kolhapur,2
