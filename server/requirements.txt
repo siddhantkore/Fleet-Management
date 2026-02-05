@@ -1,0 +1,44 @@
+# ==================== CORE DEPENDENCIES ====================
+
+# Web Framework & Server
+fastapi==0.104.1          # Modern async web framework
+uvicorn[standard]==0.24.0 # ASGI web server
+python-multipart==0.0.6   # Form data parsing
+
+# Database
+sqlalchemy==2.0.23        # Python SQL toolkit and ORM
+psycopg2-binary==2.9.9    # PostgreSQL adapter for Python
+alembic==1.12.1           # SQLAlchemy migrations (for future use)
+
+# Data Validation & Serialization
+pydantic==2.5.0           # Data validation using Python type hints
+pydantic[email]==2.5.0    # Email validation support
+email-validator==2.1.0    # Email validation library
+
+# Configuration & Environment
+python-dotenv==1.0.0      # Load environment variables from .env
+
+# CORS Support
+python-multipart==0.0.6   # Support for multipart/form-data
+cors==1.0.1               # CORS middleware
+
+# ==================== AUTHENTICATION & SECURITY ====================
+
+python-jose[cryptography]==3.3.0  # JWT token generation and validation
+passlib[bcrypt]==1.7.4            # Password hashing library
+cryptography==41.0.7              # Cryptographic recipes and primitives
+bcrypt==4.1.1                      # Password hashing
+
+# ==================== DEVELOPMENT & DEBUGGING ====================
+
+pytest==7.4.3                  # Testing framework (for future)
+pytest-asyncio==0.21.1         # Async pytest support (for future)
+black==23.12.0                 # Code formatter
+flake8==6.1.0                  # Linter
+isort==5.13.2                  # Import sorter
+mypy==1.7.1                    # Static type checker
+
+# ==================== LOGGING & MONITORING ====================
+
+python-json-logger==2.0.7      # JSON logging formatter
+
