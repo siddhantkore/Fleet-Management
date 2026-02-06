@@ -5,6 +5,7 @@ Provides system health information and connectivity checks.
 
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 from app.database import get_db
 from app.config import API_VERSION
 from app.schemas import HealthCheckResponse, StatusResponse
@@ -52,7 +53,7 @@ def health_check(db: Session = Depends(get_db)):
     """
     try:
         # Execute simple query to verify connection
-        db.execute("SELECT 1")
+        db.execute(text("SELECT 1"))
 
         return {
             "status": "healthy",
