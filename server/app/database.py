@@ -22,6 +22,8 @@ Base = declarative_base()
 
 def init_db():
     """Initialize database - create all tables"""
+    # Import models here to ensure they are registered with Base.metadata
+    from app import models
     Base.metadata.create_all(bind=engine)
 
 
