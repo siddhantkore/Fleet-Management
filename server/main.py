@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import API_TITLE, API_DESCRIPTION, API_VERSION, DEBUG, LOG_LEVEL
 from app.database import init_db
-from app.routes import status, contact
+from app.routes import status, contact, tracking
 
 # Configure logging
 logging.basicConfig(
@@ -65,6 +65,9 @@ def create_app() -> FastAPI:
 
     # Include contact routes
     app.include_router(contact.router)
+
+    # Include tracking routes
+    app.include_router(tracking.router)
 
     logger.info(f"Application '{API_TITLE}' started successfully")
     return app

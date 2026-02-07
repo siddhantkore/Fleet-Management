@@ -15,9 +15,14 @@ function LandingPage() {
       <nav className="navbar">
         <div className="nav-content">
           <h1 className="logo">🚚 Fleet Management</h1>
-          <button onClick={handleContactClick} className="nav-contact-btn">
-            Contact Us
-          </button>
+          <div className="nav-buttons">
+            <button onClick={() => navigate('/tracking')} className="nav-tracking-btn">
+              Live Tracking
+            </button>
+            <button onClick={handleContactClick} className="nav-contact-btn">
+              Contact Us
+            </button>
+          </div>
         </div>
       </nav>
 

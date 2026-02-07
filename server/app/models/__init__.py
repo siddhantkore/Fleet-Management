@@ -5,3 +5,4 @@ from app.models.driver import Driver
 from app.models.location import Location
 from app.models.trip import Trip
 from app.models.maintenance import Maintenance
+from app.models.tracking import LiveLocation
