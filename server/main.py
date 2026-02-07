@@ -43,8 +43,8 @@ def create_app() -> FastAPI:
     # Add CORS middleware for frontend communication
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],  # TODO: In production, specify exact origins
-        allow_credentials=True,
+        allow_origins=["*"],
+        allow_credentials=False,
         allow_methods=["*"],
         allow_headers=["*"],
     )
@@ -68,6 +68,8 @@ def create_app() -> FastAPI:
 
     # Include tracking routes
     app.include_router(tracking.router, prefix="/api/v1")
+    # Also include tracking at root level for backward compatibility or direct access
+    app.include_router(tracking.router)
 
     # Include user/auth routes
     app.include_router(user.router, prefix="/api/v1")

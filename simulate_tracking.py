@@ -5,8 +5,27 @@ import json
 
 # Configuration
 DRIVERS = [f"D{str(i).zfill(3)}" for i in range(1, 51)]
-BASE_URL = "http://localhost:8000/tracking/owntracks"
+# Try both localhost and container name for flexibility
+URL_OPTIONS = [
+    "http://backend:8000/api/v1/tracking/owntracks",
+    "http://localhost:8000/api/v1/tracking/owntracks"
+]
 PUNE_CENTER = (18.5204, 73.8567)
+
+def get_base_url():
+    for url in URL_OPTIONS:
+        try:
+            # Short timeout to check if reachable
+            # Use /health instead of the full path to avoid 404/405 confusion during check
+            test_url = url.split("/api/v1")[0] + "/health"
+            requests.get(test_url, timeout=1)
+            return url
+        except:
+            continue
+    return URL_OPTIONS[1] # fallback to localhost
+
+BASE_URL = get_base_url()
+print(f"Using BASE_URL: {BASE_URL}")
 
 def simulate_driver(driver_id):
     # Random starting point around Pune

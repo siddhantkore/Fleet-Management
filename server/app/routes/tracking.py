@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisco
 from sqlalchemy.orm import Session
 from typing import List, Dict
 import json
+import logging
 from datetime import datetime
 import asyncio
 
@@ -9,6 +10,8 @@ from app.database import get_db
 from app.models.tracking import LiveLocation
 from app.schemas.tracking import OwnTracksLocation, LiveLocationResponse
 from app.models.driver import Driver
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/tracking", tags=["tracking"])
 
@@ -18,19 +21,26 @@ class ConnectionManager:
         self.active_connections: List[WebSocket] = []
 
     async def connect(self, websocket: WebSocket):
+        logger.info(f"Opening WebSocket connection from: {websocket.client}")
+        logger.debug(f"Headers: {websocket.headers}")
         await websocket.accept()
         self.active_connections.append(websocket)
+        logger.info(f"WebSocket connection accepted. Total connections: {len(self.active_connections)}")
 
     def disconnect(self, websocket: WebSocket):
         self.active_connections.remove(websocket)
+        logger.info(f"WebSocket disconnected. Total connections: {len(self.active_connections)}")
 
     async def broadcast(self, message: str):
+        disconnected = []
         for connection in self.active_connections:
             try:
                 await connection.send_text(message)
-            except Exception:
-                # Remove stale connections
-                self.active_connections.remove(connection)
+            except:
+                disconnected.append(connection)
+
+        for conn in disconnected:
+            self.active_connections.remove(conn)
 
 manager = ConnectionManager()
 
@@ -105,6 +115,7 @@ async def get_all_locations(db: Session = Depends(get_db)):
 
 @router.websocket("/ws")
 async def websocket_tracking(websocket: WebSocket):
+    logger.info("New WebSocket request received at /ws")
     await manager.connect(websocket)
     try:
         while True:
@@ -112,4 +123,7 @@ async def websocket_tracking(websocket: WebSocket):
             await asyncio.sleep(30)
             await websocket.receive_text()
     except WebSocketDisconnect:
+        manager.disconnect(websocket)
+    except Exception as e:
+        logger.error(f"WebSocket error: {e}")
         manager.disconnect(websocket)

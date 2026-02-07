@@ -1,7 +1,12 @@
 import axios from 'axios';
 
+const getBaseURL = () => {
+    const host = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
+    return `http://${host}:8000/api/v1/`;
+};
+
 const api = axios.create({
-    baseURL: 'http://localhost:8000/api/v1',
+    baseURL: getBaseURL(),
 });
 
 api.interceptors.request.use((config) => {

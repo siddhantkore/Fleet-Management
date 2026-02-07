@@ -3,6 +3,7 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import axios from 'axios';
+import api from '../services/api';
 import Navbar from '../components/Navbar/Navbar';
 import Footer from '../components/Footer/Footer';
 import './LiveTrackingPage.css';
@@ -25,14 +26,17 @@ const LiveTrackingPage = () => {
     const [loading, setLoading] = useState(true);
     const ws = useRef(null);
 
-    const API_BASE_URL = 'http://localhost:8000'; // Update if needed
-    const WS_URL = 'ws://localhost:8000/tracking/ws';
+    // Dynamic extraction of host to support different environments
+    const host = window.location.hostname;
+    // For local dev, backend is usually on 8000, while frontend is on 5173
+    const backendHost = host === 'localhost' || host === '127.0.0.1' ? `${host}:8000` : `${host}:8000`;
+    const WS_URL = `ws://${backendHost}/api/v1/tracking/ws`;
 
     useEffect(() => {
         // 1. Fetch initial locations
         const fetchLocations = async () => {
             try {
-                const response = await axios.get(`${API_BASE_URL}/tracking/locations`);
+                const response = await api.get('tracking/locations');
                 const locMap = {};
                 response.data.forEach(loc => {
                     locMap[loc.driver_id] = loc;
