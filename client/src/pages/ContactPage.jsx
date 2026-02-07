@@ -94,7 +94,7 @@ function ContactPage() {
                 <span className="info-icon">📧</span>
                 <div>
                   <h4>Email</h4>
-                  <p>support@fleetmanagement.com</p>
+                  <p>siddhskore@gmail.com</p>
                 </div>
               </div>
 
@@ -102,7 +102,7 @@ function ContactPage() {
                 <span className="info-icon">📞</span>
                 <div>
                   <h4>Phone</h4>
-                  <p>+1 (800) FLEET-00</p>
+                  <p>+91 9876789876</p>
                 </div>
               </div>
 

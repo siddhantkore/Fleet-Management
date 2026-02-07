@@ -27,7 +27,7 @@ cors==1.0.1               # CORS middleware
 python-jose[cryptography]==3.3.0  # JWT token generation and validation
 passlib[bcrypt]==1.7.4            # Password hashing library
 cryptography==41.0.7              # Cryptographic recipes and primitives
-bcrypt==4.1.1                      # Password hashing
+bcrypt==4.0.1                     # Password hashing, pinned to 4.0.1 to avoid passlib compatibility issues
 
 # ==================== DEVELOPMENT & DEBUGGING ====================
 

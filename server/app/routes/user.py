@@ -20,7 +20,7 @@ def signup(user: UserCreate, db: Session = Depends(get_db)):
         email=user.email,
         hashed_password=hashed_password,
         designation=user.designation,
-        plant_id=user.plant_id
+        plant_id=user.plant_id if user.plant_id and user.plant_id.strip() != "" else None
     )
     db.add(new_user)
     db.commit()

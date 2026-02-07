@@ -78,6 +78,16 @@ def create_app() -> FastAPI:
     # Include location/plant routes
     app.include_router(location.router, prefix="/api/v1")
 
+    # ==================== ROOT-LEVEL HEALTH CHECK ====================
+    
+    @app.get("/health")
+    async def health():
+        """
+        Root-level health check endpoint for container orchestration systems.
+        This is used by Docker, Kubernetes, and load balancers.
+        """
+        return {"status": "healthy"}
+
     logger.info(f"Application '{API_TITLE}' started successfully")
     return app
 

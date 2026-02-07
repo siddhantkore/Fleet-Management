@@ -17,5 +17,3 @@ EXPOSE 5173
 
 # Run development server
 CMD ["npm", "run", "dev", "--", "--host"]
-# Run development server
-CMD ["npm", "run", "dev", "--", "--host"]

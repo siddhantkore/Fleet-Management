@@ -179,10 +179,10 @@
 }
 
 .feature-card {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #ffffff 0%, #ffffff 100%);
   padding: 2.5rem;
   border-radius: 15px;
-  color: white;
+  color: rgb(0, 0, 0);
   transition: all 0.3s ease;
   cursor: pointer;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
@@ -284,8 +284,8 @@
 
 /* CTA Section */
 .cta-section {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  background: linear-gradient(135deg, #ffffff 0%, #ffffff 100%);
+  color: rgb(0, 0, 0);
   padding: 4rem 2rem;
   text-align: center;
 }
@@ -303,7 +303,7 @@
 
 .cta-button-large {
   background: white;
-  color: #667eea;
+  color: #284ced;
   border: none;
   padding: 1.2rem 3rem;
   font-size: 1.2rem;
@@ -316,7 +316,8 @@
 
 .cta-button-large:hover {
   transform: translateY(-3px);
-  box-shadow: 0 6px 25px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 8px 30px rgba(1, 192, 36, 0.3);
+  border: 1px solid #00982b;
   background: #f8f9ff;
 }
 
