@@ -17,6 +17,13 @@ class LocationCreate(LocationBase):
     """
     pass
 
+class LocationUpdate(BaseModel):
+    name: str | None = None
+    type: str | None = None
+    latitude: float | None = None
+    longitude: float | None = None
+    city: str | None = None
+
 class LocationResponse(LocationBase):
     """
     Schema for Location response.

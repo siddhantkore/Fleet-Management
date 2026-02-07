@@ -1,9 +1,11 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import './LandingPage.css';
 
 function LandingPage() {
   const navigate = useNavigate();
+  const { token } = useAuth();
 
   const handleContactClick = () => {
     navigate('/contact');
@@ -19,6 +21,15 @@ function LandingPage() {
             <button onClick={() => navigate('/tracking')} className="nav-tracking-btn">
               Live Tracking
             </button>
+            {token ? (
+              <button onClick={() => navigate('/dashboard')} className="nav-login-btn">
+                Dashboard
+              </button>
+            ) : (
+              <button onClick={() => navigate('/login')} className="nav-login-btn">
+                Admin Login
+              </button>
+            )}
             <button onClick={handleContactClick} className="nav-contact-btn">
               Contact Us
             </button>
@@ -33,8 +44,8 @@ function LandingPage() {
           <p className="hero-subtitle">
             Centralized Vehicle Allocation and Logistics Optimization System for Multi-Plant Organizations
           </p>
-          <button onClick={handleContactClick} className="cta-button">
-            Get Started
+          <button onClick={() => token ? navigate('/dashboard') : navigate('/signup')} className="cta-button">
+            {token ? 'Explore Dashboard' : 'Get Started'}
           </button>
         </div>
         <div className="hero-image">

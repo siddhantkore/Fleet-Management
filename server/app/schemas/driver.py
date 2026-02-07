@@ -22,6 +22,15 @@ class DriverCreate(DriverBase):
     """
     pass
 
+class DriverUpdate(BaseModel):
+    name: str | None = None
+    license_no: str | None = None
+    license_expiry: date | None = None
+    phone: str | None = None
+    home_plant_id: str | None = None
+    status: str | None = None
+    rating: float | None = None
+
 class DriverResponse(DriverBase):
     """
     Schema for Driver response.

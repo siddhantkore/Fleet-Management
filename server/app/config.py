@@ -18,5 +18,10 @@ API_TITLE = "Fleet Management API"
 API_DESCRIPTION = "Backend API for Fleet Management System"
 API_VERSION = "1.0.0"
 
+# Auth Configuration
+SECRET_KEY = os.getenv("SECRET_KEY", "your-super-secret-key-change-it")
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 24 hours
+
 # Logging configuration
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")

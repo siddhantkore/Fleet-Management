@@ -1,9 +1,9 @@
 /* Contact Page Styles */
 
 .contact-container {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  color: #333;
-  background: #f5f7fa;
+  font-family: 'Inter', system-ui, sans-serif;
+  color: #1e293b;
+  background-color: #fdfdfb;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -11,10 +11,11 @@
 
 /* Navigation Bar */
 .navbar {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  background-color: #ffffff;
+  color: #1e293b;
   padding: 1rem 0;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  border-bottom: 1px solid #f1f5f9;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .nav-content {
@@ -27,26 +28,27 @@
 }
 
 .logo {
-  font-size: 1.8rem;
-  font-weight: bold;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #0f172a;
   margin: 0;
   cursor: pointer;
 }
 
 .nav-back-btn {
   background: white;
-  color: #667eea;
-  border: none;
-  padding: 0.75rem 1.5rem;
-  border-radius: 25px;
+  color: #3b82f6;
+  border: 1px solid #3b82f6;
+  padding: 0.6rem 1.2rem;
+  border-radius: 6px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
 }
 
 .nav-back-btn:hover {
-  background: #f0f0f0;
-  transform: translateY(-2px);
+  background: #eff6ff;
+  transform: translateY(-1px);
 }
 
 /* Contact Section */
