@@ -1,6 +1,8 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import Navbar from '../components/Navbar/Navbar';
+import Footer from '../components/Footer/Footer';
 import './LandingPage.css';
 
 function LandingPage() {
@@ -13,29 +15,7 @@ function LandingPage() {
 
   return (
     <div className="landing-container">
-      {/* Navigation Bar */}
-      <nav className="navbar">
-        <div className="nav-content">
-          <h1 className="logo">🚚 Fleet Management</h1>
-          <div className="nav-buttons">
-            <button onClick={() => navigate('/tracking')} className="nav-tracking-btn">
-              Live Tracking
-            </button>
-            {token ? (
-              <button onClick={() => navigate('/dashboard')} className="nav-login-btn">
-                Dashboard
-              </button>
-            ) : (
-              <button onClick={() => navigate('/login')} className="nav-login-btn">
-                Admin Login
-              </button>
-            )}
-            <button onClick={handleContactClick} className="nav-contact-btn">
-              Contact Us
-            </button>
-          </div>
-        </div>
-      </nav>
+      <Navbar />
 
       {/* Hero Section */}
       <section className="hero">
@@ -171,11 +151,7 @@ function LandingPage() {
         </button>
       </section>
 
-      {/* Footer */}
-      <footer className="footer">
-        <p>&copy; 2026 Fleet Management System. All rights reserved.</p>
-        <p>Centralized Vehicle Allocation and Logistics Optimization Platform</p>
-      </footer>
+      <Footer />
     </div>
   );
 }

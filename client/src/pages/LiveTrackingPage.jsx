@@ -3,6 +3,8 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import axios from 'axios';
+import Navbar from '../components/Navbar/Navbar';
+import Footer from '../components/Footer/Footer';
 import './LiveTrackingPage.css';
 
 // Fix for default marker icons in Leaflet with React
@@ -69,44 +71,54 @@ const LiveTrackingPage = () => {
     }, []);
 
     if (loading) {
-        return <div className="loading-container">Loading Live Map...</div>;
+        return (
+            <div className="live-tracking-page">
+                <Navbar />
+                <div className="loading-container">Loading Live Map...</div>
+                <Footer />
+            </div>
+        );
     }
 
     return (
-        <div className="live-tracking-container">
-            <h1>Live Fleet Tracking</h1>
-            <div className="map-wrapper">
-                <MapContainer center={[18.5204, 73.8567]} zoom={10} style={{ height: '70vh', width: '100%' }}>
-                    <TileLayer
-                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                    />
-                    {Object.values(locations).map((loc) => (
-                        <Marker 
-                            key={loc.driver_id} 
-                            position={[loc.latitude, loc.longitude]}
-                        >
-                            <Popup>
-                                <div>
-                                    <strong>Driver:</strong> {loc.driver_name || loc.driver_id}<br />
-                                    <strong>ID:</strong> {loc.driver_id}<br />
-                                    <strong>Last Updated:</strong> {new Date(loc.updated_at).toLocaleString()}
-                                </div>
-                            </Popup>
-                        </Marker>
-                    ))}
-                </MapContainer>
+        <div className="live-tracking-page">
+            <Navbar />
+            <div className="live-tracking-container">
+                <h1>Live Fleet Tracking</h1>
+                <div className="map-wrapper">
+                    <MapContainer center={[18.5204, 73.8567]} zoom={10} style={{ height: '70vh', width: '100%' }}>
+                        <TileLayer
+                            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                        />
+                        {Object.values(locations).map((loc) => (
+                            <Marker 
+                                key={loc.driver_id} 
+                                position={[loc.latitude, loc.longitude]}
+                            >
+                                <Popup>
+                                    <div>
+                                        <strong>Driver:</strong> {loc.driver_name || loc.driver_id}<br />
+                                        <strong>ID:</strong> {loc.driver_id}<br />
+                                        <strong>Last Updated:</strong> {new Date(loc.updated_at).toLocaleString()}
+                                    </div>
+                                </Popup>
+                            </Marker>
+                        ))}
+                    </MapContainer>
+                </div>
+                <div className="driver-list">
+                    <h3>Active Drivers ({Object.keys(locations).length})</h3>
+                    <ul>
+                        {Object.values(locations).map(loc => (
+                            <li key={loc.driver_id}>
+                                {loc.driver_name || loc.driver_id}: {loc.latitude.toFixed(4)}, {loc.longitude.toFixed(4)}
+                            </li>
+                        ))}
+                    </ul>
+                </div>
             </div>
-            <div className="driver-list">
-                <h3>Active Drivers ({Object.keys(locations).length})</h3>
-                <ul>
-                    {Object.values(locations).map(loc => (
-                        <li key={loc.driver_id}>
-                            {loc.driver_name || loc.driver_id}: {loc.latitude.toFixed(4)}, {loc.longitude.toFixed(4)}
-                        </li>
-                    ))}
-                </ul>
-            </div>
+            <Footer />
         </div>
     );
 };

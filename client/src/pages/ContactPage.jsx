@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import Navbar from '../components/Navbar/Navbar';
+import Footer from '../components/Footer/Footer';
 import './ContactPage.css';
 
 function ContactPage() {
@@ -69,18 +71,8 @@ function ContactPage() {
   };
 
   return (
-    <div className="contact-container">
-      {/* Navigation Bar */}
-      <nav className="navbar">
-        <div className="nav-content">
-          <h1 className="logo" onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
-            🚚 Fleet Management
-          </h1>
-          <button onClick={() => navigate('/')} className="nav-back-btn">
-            ← Back Home
-          </button>
-        </div>
-      </nav>
+    <div className="contact-page">
+      <Navbar />
 
       {/* Contact Form Section */}
       <section className="contact-section">
@@ -210,11 +202,7 @@ function ContactPage() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="footer">
-        <p>&copy; 2026 Fleet Management System. All rights reserved.</p>
-        <p>Centralized Vehicle Allocation and Logistics Optimization Platform</p>
-      </footer>
+      <Footer />
     </div>
   );
 }
