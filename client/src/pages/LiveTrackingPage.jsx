@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap, LayersControl } from 'react-leaflet';
 import L from 'leaflet';
 import axios from 'axios';
 import api from '../services/api';
@@ -109,10 +109,27 @@ const LiveTrackingPage = () => {
                 <h1>Live Fleet Tracking</h1>
                 <div className="map-wrapper">
                     <MapContainer center={[18.5204, 73.8567]} zoom={10} style={{ height: '70vh', width: '100%' }}>
-                        <TileLayer
-                            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                        />
+                        <LayersControl position="topright">
+                            <LayersControl.BaseLayer checked name="OpenStreetMap">
+                                <TileLayer
+                                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                                />
+                            </LayersControl.BaseLayer>
+                            <LayersControl.BaseLayer name="Satellite View">
+                                <TileLayer
+                                    attribution='Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EBP, and the GIS User Community'
+                                    url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+                                />
+                            </LayersControl.BaseLayer>
+                            <LayersControl.BaseLayer name="Dark Mode">
+                                <TileLayer
+                                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+                                    url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+                                />
+                            </LayersControl.BaseLayer>
+                        </LayersControl>
+                        
                         {/* Render Plants */}
                         {plants.map((p) => (
                             <Marker 
