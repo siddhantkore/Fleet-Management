@@ -1,25 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
 import axios from 'axios';
 import api from '../services/api';
 import Navbar from '../components/Navbar/Navbar';
 import Footer from '../components/Footer/Footer';
 import './LiveTrackingPage.css';
-
-// Fix for default marker icons in Leaflet with React
-import markerIcon from 'leaflet/dist/images/marker-icon.png';
-import markerShadow from 'leaflet/dist/images/marker-shadow.png';
-
-let DefaultIcon = L.icon({
-    iconUrl: markerIcon,
-    shadowUrl: markerShadow,
-    iconSize: [25, 41],
-    iconAnchor: [12, 41]
-});
-
-L.Marker.prototype.options.icon = DefaultIcon;
 
 const LiveTrackingPage = () => {
     const [locations, setLocations] = useState({});
@@ -28,9 +13,17 @@ const LiveTrackingPage = () => {
 
     // Dynamic extraction of host to support different environments
     const host = window.location.hostname;
-    // For local dev, backend is usually on 8000, while frontend is on 5173
-    const backendHost = host === 'localhost' || host === '127.0.0.1' ? `${host}:8000` : `${host}:8000`;
-    const WS_URL = `ws://${backendHost}/api/v1/tracking/ws`;
+    const protocol = window.location.protocol === 'https:' ? 'https' : 'http';
+    const wsProtocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+
+    let backendHost = `${host}:8000`;
+    
+    // Support for GitHub Codespaces / Gitpod where ports are subdomains
+    if (host.includes('.app.github.dev') || host.includes('.gitpod.io')) {
+        backendHost = host.replace('-5173', '-8000');
+    }
+    
+    const WS_URL = `${wsProtocol}://${backendHost}/api/v1/tracking/ws`;
 
     useEffect(() => {
         // 1. Fetch initial locations

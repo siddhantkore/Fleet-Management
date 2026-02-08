@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../services/api';
 import Navbar from '../components/Navbar/Navbar';
 import Footer from '../components/Footer/Footer';
 import './ContactPage.css';
@@ -17,8 +17,6 @@ function ContactPage() {
   const [loading, setLoading] = useState(false);
   const [submitStatus, setSubmitStatus] = useState(null);
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -33,11 +31,7 @@ function ContactPage() {
     setSubmitStatus(null);
 
     try {
-      const response = await axios.post(`${API_URL}/api/contact`, formData, {
-        headers: {
-          'Content-Type': 'application/json',
-        }
-      });
+      const response = await api.post('/contact', formData);
 
       console.log('Contact submission successful:', response.data);
 

@@ -1,5 +1,16 @@
 import React, { useState, useEffect } from 'react';
+import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 import api from '../services/api';
+
+const LocationPicker = ({ onLocationSelect, position }) => {
+    useMapEvents({
+        click(e) {
+            onLocationSelect(e.latlng);
+        },
+    });
+
+    return position ? <Marker position={position} /> : null;
+};
 
 const PlantManagement = () => {
     const [plants, setPlants] = useState([]);
@@ -111,7 +122,7 @@ const PlantManagement = () => {
 
             {showModal && (
                 <div className="modal-overlay">
-                    <div className="modal-content">
+                    <div className="modal-content" style={{ maxWidth: '600px' }}>
                         <h4>{editingPlant ? 'Edit Plant' : 'Add New Plant'}</h4>
                         <form onSubmit={handleSubmit}>
                             <div className="form-group">
@@ -149,6 +160,34 @@ const PlantManagement = () => {
                                     />
                                 </div>
                             </div>
+                            
+                            <div className="form-group" style={{ marginBottom: '1rem' }}>
+                                <label>Select Location on Map</label>
+                                <div style={{ height: '250px', width: '100%', borderRadius: '8px', overflow: 'hidden', border: '1px solid #e2e8f0' }}>
+                                    <MapContainer 
+                                        center={formData.latitude && formData.longitude ? [parseFloat(formData.latitude), parseFloat(formData.longitude)] : [18.5204, 73.8567]} 
+                                        zoom={13} 
+                                        style={{ height: '100%', width: '100%' }}
+                                    >
+                                        <TileLayer
+                                            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                                            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                                        />
+                                        <LocationPicker 
+                                            position={formData.latitude && formData.longitude ? [parseFloat(formData.latitude), parseFloat(formData.longitude)] : null}
+                                            onLocationSelect={(latlng) => {
+                                                setFormData({
+                                                    ...formData,
+                                                    latitude: latlng.lat.toFixed(6),
+                                                    longitude: latlng.lng.toFixed(6)
+                                                });
+                                            }}
+                                        />
+                                    </MapContainer>
+                                </div>
+                                <small style={{ color: '#64748b' }}>Click on the map to set coordinates automatically</small>
+                            </div>
+
                             <div className="form-row">
                                 <div className="form-group">
                                     <label>Latitude</label>

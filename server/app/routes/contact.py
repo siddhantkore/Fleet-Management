@@ -16,7 +16,7 @@ from datetime import datetime
 
 # Create router for contact endpoints
 router = APIRouter(
-    prefix="/api/contact",
+    prefix="/contact",
     tags=["contact"],
     responses={404: {"description": "Not found"}}
 )
