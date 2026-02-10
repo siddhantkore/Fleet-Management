@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import Icons from '../Icons/Icons';
 import './Navbar.css';
 
 const Navbar = () => {
@@ -10,8 +11,9 @@ const Navbar = () => {
     return (
         <nav className="navbar">
             <div className="nav-content">
-                <h1 className="logo" onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
-                    🚚 Fleet Management
+                <h1 className="logo" onClick={() => navigate('/')} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Icons.Truck size={28} color="#1976d2" />
+                    Fleet Management
                 </h1>
                 <div className="nav-buttons">
                     <button onClick={() => navigate('/tracking')} className="nav-tracking-btn">

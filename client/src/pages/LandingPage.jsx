@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Navbar from '../components/Navbar/Navbar';
 import Footer from '../components/Footer/Footer';
+import Icons from '../components/Icons/Icons';
 import './LandingPage.css';
 
 function LandingPage() {
@@ -29,7 +30,9 @@ function LandingPage() {
           </button>
         </div>
         <div className="hero-image">
-          <div className="hero-icon">📍</div>
+          <div className="hero-icon">
+            <Icons.MapPin size={64} color="#1976d2" />
+          </div>
         </div>
       </section>
 
@@ -38,37 +41,49 @@ function LandingPage() {
         <h2>Why Choose Our System?</h2>
         <div className="features-grid">
           <div className="feature-card">
-            <div className="feature-icon">🚗</div>
+            <div className="feature-icon">
+              <Icons.Car size={40} color="#1976d2" />
+            </div>
             <h3>Vehicle Management</h3>
             <p>Centralized master data for all fleet and personnel with real-time status tracking.</p>
           </div>
 
           <div className="feature-card">
-            <div className="feature-icon">📊</div>
+            <div className="feature-icon">
+              <Icons.BarChart size={40} color="#1976d2" />
+            </div>
             <h3>Trip Optimization</h3>
             <p>Intelligent allocation of cost-effective and compliant vehicles to trips automatically.</p>
           </div>
 
           <div className="feature-card">
-            <div className="feature-icon">📍</div>
+            <div className="feature-icon">
+              <Icons.MapPin size={40} color="#1976d2" />
+            </div>
             <h3>Real-Time Tracking</h3>
             <p>GPS integration for live status updates and complete path history visualization.</p>
           </div>
 
           <div className="feature-card">
-            <div className="feature-icon">⚠️</div>
+            <div className="feature-icon">
+              <Icons.AlertTriangle size={40} color="#ff9800" />
+            </div>
             <h3>Compliance Alerts</h3>
             <p>Automated proactive notifications for document expiry and service schedules.</p>
           </div>
 
           <div className="feature-card">
-            <div className="feature-icon">📈</div>
+            <div className="feature-icon">
+              <Icons.TrendingUp size={40} color="#1976d2" />
+            </div>
             <h3>Dashboard Analytics</h3>
             <p>Comprehensive KPI tracking and optimization decision visualization.</p>
           </div>
 
           <div className="feature-card">
-            <div className="feature-icon">🔗</div>
+            <div className="feature-icon">
+              <Icons.Link size={40} color="#1976d2" />
+            </div>
             <h3>Multi-Plant Support</h3>
             <p>Seamless vehicle sharing and coordination across multiple plant locations.</p>
           </div>
@@ -80,25 +95,25 @@ function LandingPage() {
         <h2>System Architecture</h2>
         <div className="architecture-grid">
           <div className="arch-component">
-            <h4>🖥️ Frontend</h4>
+            <h4><Icons.Monitor size={24} color="#1976d2" style={{marginRight: '8px', display: 'inline-block', verticalAlign: 'middle'}} /> Frontend</h4>
             <p>React.js user interface for all stakeholders</p>
             <small>Dashboard, Maps, Forms</small>
           </div>
 
           <div className="arch-component">
-            <h4>⚙️ API Gateway</h4>
+            <h4><Icons.Settings size={24} color="#1976d2" style={{marginRight: '8px', display: 'inline-block', verticalAlign: 'middle'}} /> API Gateway</h4>
             <p>FastAPI backend with security & routing</p>
             <small>Authentication, Request Handling</small>
           </div>
 
           <div className="arch-component">
-            <h4>💾 Database</h4>
+            <h4><Icons.Database size={24} color="#1976d2" style={{marginRight: '8px', display: 'inline-block', verticalAlign: 'middle'}} /> Database</h4>
             <p>PostgreSQL with PostGIS extensions</p>
             <small>Relational Data, Geospatial Queries</small>
           </div>
 
           <div className="arch-component">
-            <h4>🔧 Optimization</h4>
+            <h4><Icons.Wrench size={24} color="#1976d2" style={{marginRight: '8px', display: 'inline-block', verticalAlign: 'middle'}} /> Optimization</h4>
             <p>Google OR-Tools powered engine</p>
             <small>Route Planning, Resource Allocation</small>
           </div>
@@ -110,32 +125,32 @@ function LandingPage() {
         <h2>Supported Data Models</h2>
         <div className="data-grid">
           <div className="data-item">
-            <span className="data-icon">📋</span>
+            <span className="data-icon"><Icons.Clipboard size={32} color="#1976d2" /></span>
             <h4>Vehicle Master Data</h4>
             <p>Track vehicle types, capacity, fuel efficiency, and status</p>
           </div>
           <div className="data-item">
-            <span className="data-icon">👨‍💼</span>
+            <span className="data-icon"><Icons.Briefcase size={32} color="#1976d2" /></span>
             <h4>Driver Management</h4>
             <p>License info, ratings, availability, and compliance status</p>
           </div>
           <div className="data-item">
-            <span className="data-icon">📍</span>
+            <span className="data-icon"><Icons.MapPin size={32} color="#1976d2" /></span>
             <h4>Locations & Plants</h4>
             <p>Multi-depot support with geographic coordinates</p>
           </div>
           <div className="data-item">
-            <span className="data-icon">🛣️</span>
+            <span className="data-icon"><Icons.Road size={32} color="#1976d2" /></span>
             <h4>Trip Planning</h4>
             <p>Automated route optimization with time windows</p>
           </div>
           <div className="data-item">
-            <span className="data-icon">🔧</span>
+            <span className="data-icon"><Icons.Tool size={32} color="#1976d2" /></span>
             <h4>Maintenance Records</h4>
             <p>Service history, preventive maintenance, and breakdowns</p>
           </div>
           <div className="data-item">
-            <span className="data-icon">📊</span>
+            <span className="data-icon"><Icons.BarChart size={32} color="#1976d2" /></span>
             <h4>KPI Analytics</h4>
             <p>Performance metrics and optimization reports</p>
           </div>

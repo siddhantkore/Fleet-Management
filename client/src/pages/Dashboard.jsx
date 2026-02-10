@@ -1,6 +1,7 @@
 import React from 'react';
 import { Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import Icons from '../components/Icons/Icons';
 import DriverManagement from './DriverManagement';
 import PlantManagement from './PlantManagement';
 import TripManagement from './TripManagement';
@@ -17,17 +18,17 @@ const Dashboard = () => {
     };
 
     const navItems = [
-        { path: '/dashboard/plants', label: 'Plants', icon: '🏢' },
-        { path: '/dashboard/drivers', label: 'Drivers', icon: '👤' },
-        { path: '/dashboard/trips', label: 'Trips', icon: '🚚' },
-        { path: '/tracking', label: 'Live Tracking', icon: '📍' },
+        { path: '/dashboard/plants', label: 'Plants', icon: () => <Icons.Building size={20} color="#1976d2" /> },
+        { path: '/dashboard/drivers', label: 'Drivers', icon: () => <Icons.User size={20} color="#1976d2" /> },
+        { path: '/dashboard/trips', label: 'Trips', icon: () => <Icons.Truck size={20} color="#1976d2" /> },
+        { path: '/tracking', label: 'Live Tracking', icon: () => <Icons.MapPin size={20} color="#1976d2" /> },
     ];
 
     return (
         <div className="dashboard-layout">
             <aside className="sidebar">
                 <div className="sidebar-header">
-                    <span className="logo-icon">🚚</span>
+                    <span className="logo-icon"><Icons.Truck size={28} color="#1976d2" /></span>
                     <h3>Fleet Admin</h3>
                 </div>
                 <nav className="sidebar-nav">
@@ -37,7 +38,7 @@ const Dashboard = () => {
                             to={item.path} 
                             className={`nav-item ${location.pathname === item.path ? 'active' : ''}`}
                         >
-                            <span className="nav-icon">{item.icon}</span>
+                            <span className="nav-icon">{item.icon()}</span>
                             {item.label}
                         </Link>
                     ))}

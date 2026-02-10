@@ -1,0 +1,150 @@
+.icon-svg {
+  color: currentColor;
+  display: inline-block;
+  vertical-align: middle;
+  transition: all 0.2s ease;
+}
+
+.icon-svg:hover {
+  opacity: 0.8;
+}
+
+/* Icon container styles for different contexts */
+.icon-container {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  background: transparent;
+}
+
+.icon-container.has-background {
+  background-color: rgba(0, 0, 0, 0.05);
+  border-radius: 6px;
+  padding: 8px;
+}
+
+.icon-container.large {
+  font-size: 32px;
+}
+
+.icon-container.medium {
+  font-size: 24px;
+}
+
+.icon-container.small {
+  font-size: 16px;
+}
+
+/* Icon with text layout */
+.icon-with-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.icon-with-label .icon {
+  flex-shrink: 0;
+}
+
+/* Different colored icons */
+.icon-primary {
+  color: #1976d2;
+}
+
+.icon-success {
+  color: #4caf50;
+}
+
+.icon-warning {
+  color: #ff9800;
+}
+
+.icon-danger {
+  color: #f44336;
+}
+
+.icon-info {
+  color: #00bcd4;
+}
+
+/* Icon animation effects */
+@keyframes iconPulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.icon-pulse {
+  animation: iconPulse 2s infinite;
+}
+
+@keyframes iconBounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
+.icon-bounce {
+  animation: iconBounce 1s infinite;
+}
+
+@keyframes iconSpin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.icon-spin {
+  animation: iconSpin 2s linear infinite;
+}
+
+/* Icon specific sizing */
+.icon-2xs {
+  width: 12px;
+  height: 12px;
+}
+
+.icon-xs {
+  width: 16px;
+  height: 16px;
+}
+
+.icon-sm {
+  width: 20px;
+  height: 20px;
+}
+
+.icon-base {
+  width: 24px;
+  height: 24px;
+}
+
+.icon-lg {
+  width: 32px;
+  height: 32px;
+}
+
+.icon-xl {
+  width: 40px;
+  height: 40px;
+}
+
+.icon-2xl {
+  width: 48px;
+  height: 48px;
+}
+
+.icon-3xl {
+  width: 56px;
+  height: 56px;
+}
