@@ -114,7 +114,21 @@ def optimize_trip(db: Session, from_loc: str, to_loc: str, cargo_weight: float):
 
     distance = haversine(from_lat, from_lon, to_lat, to_lon)
     
-    summary = f"Optimization Summary:\n- {vehicle_reason}\n- {driver_reason}\n- Estimated Distance: {distance:.2f} km."
+    summary = f"""**Trip Optimization Report**
+
+Based on the requirement to transport {cargo_weight} kg from {from_id} to {to_id}, our optimization engine has selected the following:
+
+**Selected Vehicle:** {selected_vehicle.vehicle_id} ({selected_vehicle.license_plate})
+- **Reasoning:** {vehicle_reason} It has a capacity of {selected_vehicle.capacity_kg}kg, which comfortably fits the cargo. Its fuel type ({selected_vehicle.fuel_type}) and cost of ${selected_vehicle.cost_per_km}/km make it the most economical choice for this {distance:.2f} km route.
+
+**Selected Driver:** {selected_driver.name}
+- **Reasoning:** {driver_reason} The driver is currently in 'Active' status and is not on leave. Their history of {selected_driver.rating}/5.0 stars ensures high service quality for this delivery.
+
+**Route Statistics:**
+- **Mode:** Direct Route (Haversine Optimized)
+- **Estimated Distance:** {distance:.2f} km
+- **Estimated Operational Cost:** ${ (distance * selected_vehicle.cost_per_km):.2f}
+"""
 
     return {
         "vehicle_id": selected_vehicle.vehicle_id,
