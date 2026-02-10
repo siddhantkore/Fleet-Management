@@ -82,12 +82,16 @@ async def receive_owntracks_data(
     db.refresh(live_loc)
 
     # Broadcast update to websocket clients
+    from app.models.trip import Trip
+    active_trip = db.query(Trip).filter(Trip.driver_id == driver_id, Trip.status == "In-Transit").first()
+
     update_data = {
         "driver_id": driver_id,
         "latitude": data.lat,
         "longitude": data.lon,
         "updated_at": live_loc.updated_at.isoformat() if live_loc.updated_at else datetime.now().isoformat(),
-        "driver_name": driver.name if driver else "Unknown"
+        "driver_name": driver.name if driver else "Unknown",
+        "trip_id": active_trip.trip_id if active_trip else None
     }
     await manager.broadcast(json.dumps(update_data))
 
@@ -98,18 +102,21 @@ async def get_all_locations(db: Session = Depends(get_db)):
     """
     Get the latest known locations for all drivers.
     """
+    from app.models.trip import Trip
     results = db.query(LiveLocation, Driver.name).join(
         Driver, LiveLocation.driver_id == Driver.driver_id
     ).all()
     
     locations = []
     for loc, name in results:
+        active_trip = db.query(Trip).filter(Trip.driver_id == loc.driver_id, Trip.status == "In-Transit").first()
         locations.append({
             "driver_id": loc.driver_id,
             "driver_name": name,
             "latitude": loc.latitude,
             "longitude": loc.longitude,
-            "updated_at": loc.updated_at
+            "updated_at": loc.updated_at,
+            "trip_id": active_trip.trip_id if active_trip else None
         })
     return locations
 

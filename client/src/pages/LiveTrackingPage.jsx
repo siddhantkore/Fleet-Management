@@ -22,6 +22,8 @@ const STALE_THRESHOLD_MS = 5 * 60 * 1000; // 5 minutes
 const LiveTrackingPage = () => {
     const [locations, setLocations] = useState({});
     const [plants, setPlants] = useState([]);
+    const [trips, setTrips] = useState([]);
+    const [selectedTripId, setSelectedTripId] = useState(null);
     const [loading, setLoading] = useState(true);
     const ws = useRef(null);
 
@@ -50,7 +52,17 @@ const LiveTrackingPage = () => {
             }
         };
 
-        // 2. Fetch initial locations
+        // 2. Fetch active trips
+        const fetchTrips = async () => {
+            try {
+                const response = await api.get('trips');
+                setTrips(response.data.filter(t => t.status === 'In-Transit'));
+            } catch (err) {
+                console.error("Error fetching trips:", err);
+            }
+        };
+
+        // 3. Fetch initial locations
         const fetchLocations = async () => {
             try {
                 const response = await api.get('tracking/locations');
@@ -67,9 +79,10 @@ const LiveTrackingPage = () => {
         };
 
         fetchPlants();
+        fetchTrips();
         fetchLocations();
 
-        // 3. Setup WebSocket
+        // 4. Setup WebSocket
         ws.current = new WebSocket(WS_URL);
 
         ws.current.onmessage = (event) => {
@@ -78,6 +91,15 @@ const LiveTrackingPage = () => {
                 ...prev,
                 [String(data.driver_id)]: data
             }));
+            // If new location has a trip_id, update trips if not there
+            if (data.trip_id) {
+                setTrips(prev => {
+                    if (!prev.find(t => t.trip_id === data.trip_id)) {
+                        fetchTrips(); // Refresh trips list
+                    }
+                    return prev;
+                });
+            }
         };
 
         ws.current.onclose = () => {
@@ -147,7 +169,10 @@ const LiveTrackingPage = () => {
                         {Object.values(locations)
                             .filter(loc => {
                                 const lastUpdate = new Date(loc.updated_at).getTime();
-                                return (Date.now() - lastUpdate) < STALE_THRESHOLD_MS;
+                                const isFresh = (Date.now() - lastUpdate) < STALE_THRESHOLD_MS;
+                                if (!isFresh) return false;
+                                if (selectedTripId) return loc.trip_id === selectedTripId;
+                                return true;
                             })
                             .map((loc) => (
                                 <Marker 
@@ -158,6 +183,7 @@ const LiveTrackingPage = () => {
                                         <div>
                                             <strong>Driver:</strong> {loc.driver_name || loc.driver_id}<br />
                                             <strong>ID:</strong> {loc.driver_id}<br />
+                                            {loc.trip_id && <><strong>Trip ID:</strong> {loc.trip_id}<br /></>}
                                             <strong>Last Updated:</strong> {new Date(loc.updated_at).toLocaleString()}
                                         </div>
                                     </Popup>
@@ -165,17 +191,48 @@ const LiveTrackingPage = () => {
                             ))}
                     </MapContainer>
                 </div>
-                <div className="driver-list">
-                    <h3>Active Drivers ({Object.values(locations).filter(loc => (Date.now() - new Date(loc.updated_at).getTime()) < STALE_THRESHOLD_MS).length})</h3>
-                    <ul>
-                        {Object.values(locations)
-                            .filter(loc => (Date.now() - new Date(loc.updated_at).getTime()) < STALE_THRESHOLD_MS)
-                            .map(loc => (
-                                <li key={loc.driver_id}>
-                                    {loc.driver_name || loc.driver_id}: {loc.latitude.toFixed(4)}, {loc.longitude.toFixed(4)}
+                <div className="tracking-info-grid">
+                    <div className="info-card trip-list">
+                        <h3>Active Trips ({trips.length})</h3>
+                        <div className="filter-hint">Select a trip to track specifically</div>
+                        <ul className="trip-items">
+                            <li 
+                                className={!selectedTripId ? 'active' : ''} 
+                                onClick={() => setSelectedTripId(null)}
+                            >
+                                All Active Drivers
+                            </li>
+                            {trips.map(trip => (
+                                <li 
+                                    key={trip.trip_id}
+                                    className={selectedTripId === trip.trip_id ? 'active' : ''}
+                                    onClick={() => setSelectedTripId(trip.trip_id)}
+                                >
+                                    <span className="trip-id">{trip.trip_id}</span>
+                                    <span className="trip-route">{trip.from_loc} ➔ {trip.to_loc}</span>
                                 </li>
                             ))}
-                    </ul>
+                        </ul>
+                    </div>
+                    <div className="info-card driver-list">
+                        <h3>Drivers on Map</h3>
+                        <ul>
+                            {Object.values(locations)
+                                .filter(loc => {
+                                    const isFresh = (Date.now() - new Date(loc.updated_at).getTime()) < STALE_THRESHOLD_MS;
+                                    if (!isFresh) return false;
+                                    if (selectedTripId) return loc.trip_id === selectedTripId;
+                                    return true;
+                                })
+                                .map(loc => (
+                                    <li key={loc.driver_id}>
+                                        <strong>{loc.driver_name || loc.driver_id}</strong>
+                                        <div className="coords-text">{loc.latitude.toFixed(4)}, {loc.longitude.toFixed(4)}</div>
+                                        {loc.trip_id && <div className="trip-tag">Trip: {loc.trip_id}</div>}
+                                    </li>
+                                ))}
+                        </ul>
+                    </div>
                 </div>
             </div>
             <Footer />
