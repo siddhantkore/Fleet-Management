@@ -86,9 +86,32 @@ const TripManagement = () => {
     const fetchTrips = async () => {
         try {
             const response = await api.get('/trips');
-            setTrips(response.data);
+            // Sort trips: In-Transit, then Planned, then others
+            const sortedTrips = response.data.sort((a, b) => {
+                const statusOrder = { 'In-Transit': 0, 'Planned': 1, 'Completed': 2, 'Cancelled': 3 };
+                return (statusOrder[a.status] ?? 99) - (statusOrder[b.status] ?? 99);
+            });
+            setTrips(sortedTrips);
         } catch (error) {
             console.error('Error fetching trips:', error);
+        }
+    };
+
+    const handleStartTrip = async (trip_id) => {
+        try {
+            await api.post(`/trips/${trip_id}/start`);
+            fetchTrips();
+        } catch (error) {
+            alert('Failed to start trip');
+        }
+    };
+
+    const handleCompleteTrip = async (trip_id) => {
+        try {
+            await api.post(`/trips/${trip_id}/complete`);
+            fetchTrips();
+        } catch (error) {
+            alert('Failed to complete trip');
         }
     };
 
@@ -306,19 +329,23 @@ const TripManagement = () => {
                             <th>Driver</th>
                             <th>From</th>
                             <th>To</th>
-                            <th>Start Time</th>
                             <th>Status</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         {trips.length > 0 ? trips.map(trip => (
                             <tr key={trip.trip_id}>
-                                <td>{trip.trip_id}</td>
+                                <td>
+                                    <div className="trip-id-cell">
+                                        <strong>{trip.trip_id}</strong>
+                                        <span className="time-sub">{new Date(trip.start_time).toLocaleString()}</span>
+                                    </div>
+                                </td>
                                 <td>{trip.vehicle_id}</td>
                                 <td>{trip.driver_id}</td>
                                 <td>{trip.from_loc}</td>
                                 <td>{trip.to_loc}</td>
-                                <td>{new Date(trip.start_time).toLocaleString()}</td>
                                 <td>
                                     <span 
                                         className="status-badge" 
@@ -326,6 +353,29 @@ const TripManagement = () => {
                                     >
                                         {trip.status}
                                     </span>
+                                </td>
+                                <td>
+                                    <div className="action-buttons">
+                                        {trip.status === 'Planned' && (
+                                            <button 
+                                                className="action-btn start-btn"
+                                                onClick={() => handleStartTrip(trip.trip_id)}
+                                            >
+                                                Start
+                                            </button>
+                                        )}
+                                        {trip.status === 'In-Transit' && (
+                                            <button 
+                                                className="action-btn complete-btn"
+                                                onClick={() => handleCompleteTrip(trip.trip_id)}
+                                            >
+                                                Complete
+                                            </button>
+                                        )}
+                                        {trip.status === 'Completed' && (
+                                            <span className="done-icon">✓</span>
+                                        )}
+                                    </div>
                                 </td>
                             </tr>
                         )) : (

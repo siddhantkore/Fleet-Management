@@ -192,3 +192,48 @@
     color: #999;
     padding: 20px;
 }
+
+.trip-id-cell {
+    display: flex;
+    flex-direction: column;
+}
+
+.time-sub {
+    font-size: 0.75rem;
+    color: #888;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+.action-btn {
+    padding: 6px 12px;
+    border: none;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.action-btn:hover {
+    opacity: 0.9;
+}
+
+.start-btn {
+    background-color: #3498db;
+    color: white;
+}
+
+.complete-btn {
+    background-color: #2ecc71;
+    color: white;
+}
+
+.done-icon {
+    color: #2ecc71;
+    font-weight: bold;
+    font-size: 1.2rem;
+}
