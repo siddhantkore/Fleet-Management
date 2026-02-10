@@ -44,6 +44,8 @@ def schedule_trip(request: TripScheduleRequest, db: Session = Depends(get_db), c
     driver = db.query(Driver).filter(Driver.driver_id == optimized_data["driver_id"]).first()
     
     if vehicle:
+        if request.cargo_weight > vehicle.capacity_kg:
+             raise HTTPException(status_code=400, detail=f"Cargo weight {request.cargo_weight} exceeds vehicle capacity {vehicle.capacity_kg}")
         vehicle.current_status = "Assigned"
     if driver:
         driver.current_status = "Assigned"
