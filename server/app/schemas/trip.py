@@ -14,13 +14,25 @@ class TripBase(BaseModel):
     start_time: datetime
     end_time: Optional[datetime] = None
     distance_km: float
+    cargo_weight: Optional[float] = None
     status: str
+    summary: Optional[str] = None
 
 class TripCreate(TripBase):
     """
     Schema for creating a new Trip.
     """
     pass
+
+class TripScheduleRequest(BaseModel):
+    """
+    Schema for admin to request a trip schedule.
+    """
+    from_loc: str # location_id or "lat,lng"
+    to_loc: str # location_id or "lat,lng"
+    start_time: datetime
+    cargo_weight: float
+    optimize: Optional[bool] = True
 
 class TripResponse(TripBase):
     """

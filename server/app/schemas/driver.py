@@ -14,6 +14,8 @@ class DriverBase(BaseModel):
     phone: str
     home_plant_id: str
     status: Optional[str] = "Active"
+    current_status: Optional[str] = "Available"
+    is_on_leave: Optional[bool] = False
     rating: Optional[float] = 5.0
 
 class DriverCreate(DriverBase):

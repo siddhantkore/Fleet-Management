@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Float, DateTime, ForeignKey
+from sqlalchemy import Column, String, Float, DateTime, ForeignKey, Text
 from app.database import Base
 
 class Trip(Base):
@@ -15,7 +15,9 @@ class Trip(Base):
     start_time = Column(DateTime, nullable=False)
     end_time = Column(DateTime, nullable=True)
     distance_km = Column(Float, nullable=False)
+    cargo_weight = Column(Float, nullable=True)
     status = Column(String(20), default="Planned") # Planned, In-Transit, Completed, Cancelled
+    summary = Column(Text, nullable=True) # LLM generated summary for selection
 
     def __repr__(self):
         """
