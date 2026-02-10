@@ -3,6 +3,7 @@ import { Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext';
 import DriverManagement from './DriverManagement';
 import PlantManagement from './PlantManagement';
+import TripManagement from './TripManagement';
 import './Dashboard.css';
 
 const Dashboard = () => {
@@ -18,6 +19,7 @@ const Dashboard = () => {
     const navItems = [
         { path: '/dashboard/plants', label: 'Plants', icon: '🏢' },
         { path: '/dashboard/drivers', label: 'Drivers', icon: '👤' },
+        { path: '/dashboard/trips', label: 'Trips', icon: '🚚' },
         { path: '/tracking', label: 'Live Tracking', icon: '📍' },
     ];
 
@@ -56,6 +58,7 @@ const Dashboard = () => {
                     <Routes>
                         <Route path="plants" element={<PlantManagement />} />
                         <Route path="drivers" element={<DriverManagement />} />
+                        <Route path="trips" element={<TripManagement />} />
                         <Route path="/" element={<div className="welcome-screen">
                             <h1>Welcome back, Admin</h1>
                             <p>Select a category from the sidebar to manage your fleet assets.</p>
