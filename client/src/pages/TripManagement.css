@@ -34,7 +34,57 @@
     display: flex;
     flex-direction: column;
     gap: 15px;
-    max-width: 600px;
+}
+
+.scheduling-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+}
+
+@media (max-width: 900px) {
+    .scheduling-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.input-with-action {
+    display: flex;
+    gap: 10px;
+}
+
+.input-with-action select {
+    flex: 1;
+}
+
+.map-picker-btn {
+    background: #f8f9fa;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 0 10px;
+    cursor: pointer;
+    font-size: 1.2rem;
+    transition: all 0.2s;
+}
+
+.map-picker-btn.active {
+    background: #3498db;
+    color: white;
+    border-color: #2980b9;
+}
+
+.form-map-container {
+    border: 1px solid #eee;
+    padding: 10px;
+    border-radius: 8px;
+    background: #fdfdfd;
+}
+
+.map-hint {
+    margin-bottom: 8px;
+    font-size: 0.85rem;
+    color: #2980b9;
+    font-weight: 500;
 }
 
 .form-group {

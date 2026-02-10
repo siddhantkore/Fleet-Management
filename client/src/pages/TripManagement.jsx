@@ -1,12 +1,74 @@
 import React, { useState, useEffect } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from 'react-leaflet';
+import L from 'leaflet';
 import { api } from '../services/api';
 import './TripManagement.css';
+
+// Plant icon for map
+const plantIcon = new L.Icon({
+    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+    shadowSize: [41, 41]
+});
+
+// Custom point icon
+const customIcon = new L.Icon({
+    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
+    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+    shadowSize: [41, 41]
+});
+
+const SelectionMap = ({ plants, onPointSelect, selectedFrom, selectedTo }) => {
+    useMapEvents({
+        click(e) {
+            onPointSelect(e.latlng);
+        },
+    });
+
+    return (
+        <>
+            <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+            {plants.map(plant => (
+                <Marker 
+                    key={plant.location_id} 
+                    position={[plant.latitude, plant.longitude]} 
+                    icon={plantIcon}
+                    eventHandlers={{
+                        click: (e) => {
+                            L.DomEvent.stopPropagation(e);
+                            onPointSelect({ lat: plant.latitude, lng: plant.longitude, id: plant.location_id });
+                        },
+                    }}
+                >
+                    <Popup>{plant.name}</Popup>
+                </Marker>
+            ))}
+            {selectedFrom && typeof selectedFrom === 'object' && selectedFrom.lat && (
+                <Marker position={[selectedFrom.lat, selectedFrom.lng]} icon={customIcon}>
+                    <Popup>Start Point</Popup>
+                </Marker>
+            )}
+            {selectedTo && typeof selectedTo === 'object' && selectedTo.lat && (
+                <Marker position={[selectedTo.lat, selectedTo.lng]} icon={customIcon}>
+                    <Popup>End Point</Popup>
+                </Marker>
+            )}
+        </>
+    );
+};
 
 const TripManagement = () => {
     const [trips, setTrips] = useState([]);
     const [plants, setPlants] = useState([]);
     const [showForm, setShowForm] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [selectionMode, setSelectionMode] = useState(null); // 'from' or 'to'
     const [formData, setFormData] = useState({
         from_loc: '',
         to_loc: '',
@@ -44,6 +106,16 @@ const TripManagement = () => {
         setFormData({ ...formData, [name]: value });
     };
 
+    const handlePointSelect = (point) => {
+        const value = point.id || `${point.lat.toFixed(6)},${point.lng.toFixed(6)}`;
+        if (selectionMode === 'from') {
+            setFormData({ ...formData, from_loc: value });
+        } else if (selectionMode === 'to') {
+            setFormData({ ...formData, to_loc: value });
+        }
+        setSelectionMode(null);
+    };
+
     const handleScheduleTrip = async (e) => {
         e.preventDefault();
         setLoading(true);
@@ -56,7 +128,7 @@ const TripManagement = () => {
             });
             setOptimizationResult(response.data);
             fetchTrips();
-            // Reset form after delay or Success message
+            // Reset form after delay
             setTimeout(() => {
                 setShowForm(false);
                 setOptimizationResult(null);
@@ -67,7 +139,7 @@ const TripManagement = () => {
                     cargo_weight: 0,
                     optimize: true
                 });
-            }, 5000);
+            }, 8000);
         } catch (error) {
             console.error('Error scheduling trip:', error);
             alert(error.response?.data?.detail || 'Failed to schedule trip');
@@ -86,6 +158,17 @@ const TripManagement = () => {
         }
     };
 
+    const parseCoords = (val) => {
+        if (!val) return null;
+        const p = plants.find(pl => pl.location_id === val);
+        if (p) return { lat: p.latitude, lng: p.longitude };
+        if (val.includes(',')) {
+            const [lat, lng] = val.split(',').map(Number);
+            return { lat, lng };
+        }
+        return null;
+    };
+
     return (
         <div className="trip-management">
             <div className="header-actions">
@@ -100,62 +183,102 @@ const TripManagement = () => {
             {showForm && (
                 <div className="trip-form-container card">
                     <h3>Schedule Trip</h3>
-                    <form onSubmit={handleScheduleTrip} className="trip-form">
-                        <div className="form-group">
-                            <label>From Plant</label>
-                            <select 
-                                name="from_loc" 
-                                value={formData.from_loc} 
-                                onChange={handleInputChange}
-                                required
-                            >
-                                <option value="">Select Plant</option>
-                                {plants.map(p => (
-                                    <option key={p.location_id} value={p.location_id}>{p.name} ({p.city})</option>
-                                ))}
-                            </select>
-                        </div>
-                        <div className="form-group">
-                            <label>To Plant</label>
-                            <select 
-                                name="to_loc" 
-                                value={formData.to_loc} 
-                                onChange={handleInputChange}
-                                required
-                            >
-                                <option value="">Select Plant</option>
-                                {plants.map(p => (
-                                    <option key={p.location_id} value={p.location_id}>{p.name} ({p.city})</option>
-                                ))}
-                            </select>
-                        </div>
-                        <div className="form-row">
+                    <div className="scheduling-grid">
+                        <form onSubmit={handleScheduleTrip} className="trip-form">
                             <div className="form-group">
-                                <label>Start Time</label>
-                                <input 
-                                    type="datetime-local" 
-                                    name="start_time" 
-                                    value={formData.start_time} 
-                                    onChange={handleInputChange}
-                                    required
-                                />
+                                <label>From Location</label>
+                                <div className="input-with-action">
+                                    <select 
+                                        name="from_loc" 
+                                        value={formData.from_loc} 
+                                        onChange={handleInputChange}
+                                        required
+                                    >
+                                        <option value="">Select Plant</option>
+                                        {plants.map(p => (
+                                            <option key={p.location_id} value={p.location_id}>{p.name}</option>
+                                        ))}
+                                        {formData.from_loc && !plants.find(p => p.location_id === formData.from_loc) && (
+                                            <option value={formData.from_loc}>{formData.from_loc}</option>
+                                        )}
+                                    </select>
+                                    <button 
+                                        type="button" 
+                                        className={`map-picker-btn ${selectionMode === 'from' ? 'active' : ''}`}
+                                        onClick={() => setSelectionMode(selectionMode === 'from' ? null : 'from')}
+                                    >
+                                        📍
+                                    </button>
+                                </div>
                             </div>
                             <div className="form-group">
-                                <label>Cargo Weight (kg)</label>
-                                <input 
-                                    type="number" 
-                                    name="cargo_weight" 
-                                    value={formData.cargo_weight} 
-                                    onChange={handleInputChange}
-                                    required
-                                />
+                                <label>To Location</label>
+                                <div className="input-with-action">
+                                    <select 
+                                        name="to_loc" 
+                                        value={formData.to_loc} 
+                                        onChange={handleInputChange}
+                                        required
+                                    >
+                                        <option value="">Select Plant</option>
+                                        {plants.map(p => (
+                                            <option key={p.location_id} value={p.location_id}>{p.name}</option>
+                                        ))}
+                                        {formData.to_loc && !plants.find(p => p.location_id === formData.to_loc) && (
+                                            <option value={formData.to_loc}>{formData.to_loc}</option>
+                                        )}
+                                    </select>
+                                    <button 
+                                        type="button" 
+                                        className={`map-picker-btn ${selectionMode === 'to' ? 'active' : ''}`}
+                                        onClick={() => setSelectionMode(selectionMode === 'to' ? null : 'to')}
+                                    >
+                                        📍
+                                    </button>
+                                </div>
                             </div>
+                            <div className="form-row">
+                                <div className="form-group">
+                                    <label>Start Time</label>
+                                    <input 
+                                        type="datetime-local" 
+                                        name="start_time" 
+                                        value={formData.start_time} 
+                                        onChange={handleInputChange}
+                                        required
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label>Weight (kg)</label>
+                                    <input 
+                                        type="number" 
+                                        name="cargo_weight" 
+                                        value={formData.cargo_weight} 
+                                        onChange={handleInputChange}
+                                        required
+                                    />
+                                </div>
+                            </div>
+                            
+                            <button type="submit" className="submit-btn" disabled={loading}>
+                                {loading ? 'Optimizing...' : 'Optimize and Schedule'}
+                            </button>
+                        </form>
+
+                        <div className="form-map-container">
+                            <p className="map-hint">
+                                {selectionMode ? `Select ${selectionMode} location on map` : 'Click icon 📍 to select from map'}
+                            </p>
+                            <MapContainer center={[19.0760, 72.8777]} zoom={5} style={{ height: '300px', width: '100%' }}>
+                                <SelectionMap 
+                                    plants={plants} 
+                                    onPointSelect={handlePointSelect} 
+                                    selectedFrom={parseCoords(formData.from_loc)}
+                                    selectedTo={parseCoords(formData.to_loc)}
+                                />
+                            </MapContainer>
                         </div>
-                        
-                        <button type="submit" className="submit-btn" disabled={loading}>
-                            {loading ? 'Optimizing...' : 'Optimize and Schedule'}
-                        </button>
-                    </form>
+                    </div>
 
                     {optimizationResult && (
                         <div className="optimization-result">
