@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap, LayersControl } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, LayersControl } from 'react-leaflet';
 import L from 'leaflet';
-import axios from 'axios';
 import api from '../services/api';
 import Navbar from '../components/Navbar/Navbar';
 import Footer from '../components/Footer/Footer';
@@ -29,7 +28,6 @@ const LiveTrackingPage = () => {
 
     // Dynamic extraction of host to support different environments
     const host = window.location.hostname;
-    const protocol = window.location.protocol === 'https:' ? 'https' : 'http';
     const wsProtocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
 
     let backendHost = `${host}:8000`;
@@ -112,7 +110,7 @@ const LiveTrackingPage = () => {
         return () => {
             if (ws.current) ws.current.close();
         };
-    }, []);
+    }, [WS_URL]);
 
     if (loading) {
         return (
@@ -123,6 +121,25 @@ const LiveTrackingPage = () => {
             </div>
         );
     }
+
+    // eslint-disable-next-line react-hooks/purity
+    const now = Date.now();
+    const filteredForMap = Object.values(locations)
+        .filter(loc => {
+            const lastUpdate = new Date(loc.updated_at).getTime();
+            const isFresh = (now - lastUpdate) < STALE_THRESHOLD_MS;
+            if (!isFresh) return false;
+            if (selectedTripId) return loc.trip_id === selectedTripId;
+            return true;
+        });
+
+    const filteredForList = Object.values(locations)
+        .filter(loc => {
+            const isFresh = (now - new Date(loc.updated_at).getTime()) < STALE_THRESHOLD_MS;
+            if (!isFresh) return false;
+            if (selectedTripId) return loc.trip_id === selectedTripId;
+            return true;
+        });
 
     return (
         <div className="live-tracking-page">
@@ -166,15 +183,7 @@ const LiveTrackingPage = () => {
                             </Marker>
                         ))}
                         {/* Render Drivers (filter out data older than 5 mins) */}
-                        {Object.values(locations)
-                            .filter(loc => {
-                                const lastUpdate = new Date(loc.updated_at).getTime();
-                                const isFresh = (Date.now() - lastUpdate) < STALE_THRESHOLD_MS;
-                                if (!isFresh) return false;
-                                if (selectedTripId) return loc.trip_id === selectedTripId;
-                                return true;
-                            })
-                            .map((loc) => (
+                        {filteredForMap.map((loc) => (
                                 <Marker 
                                     key={`driver-${loc.driver_id}`} 
                                     position={[loc.latitude, loc.longitude]}
@@ -217,14 +226,7 @@ const LiveTrackingPage = () => {
                     <div className="info-card driver-list">
                         <h3>Drivers on Map</h3>
                         <ul>
-                            {Object.values(locations)
-                                .filter(loc => {
-                                    const isFresh = (Date.now() - new Date(loc.updated_at).getTime()) < STALE_THRESHOLD_MS;
-                                    if (!isFresh) return false;
-                                    if (selectedTripId) return loc.trip_id === selectedTripId;
-                                    return true;
-                                })
-                                .map(loc => (
+                            {filteredForList.map(loc => (
                                     <li key={loc.driver_id}>
                                         <strong>{loc.driver_name || loc.driver_id}</strong>
                                         <div className="coords-text">{loc.latitude.toFixed(4)}, {loc.longitude.toFixed(4)}</div>

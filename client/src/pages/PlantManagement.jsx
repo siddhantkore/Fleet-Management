@@ -25,18 +25,22 @@ const PlantManagement = () => {
         city: ''
     });
 
-    useEffect(() => {
-        fetchPlants();
-    }, []);
-
     const fetchPlants = async () => {
         try {
             const response = await api.get('/locations/');
             setPlants(response.data);
-        } catch (err) {
-            console.error("Error fetching plants", err);
+        } catch {
+            console.error("Error fetching plants");
         }
     };
+
+     
+    useEffect(() => {
+        const loadData = async () => {
+            await fetchPlants();
+        };
+        loadData();
+    }, []);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -60,7 +64,7 @@ const PlantManagement = () => {
             try {
                 await api.delete(`/locations/${id}`);
                 fetchPlants();
-            } catch (err) {
+            } catch {
                 alert("Cannot delete plant. It might be linked to drivers or users.");
             }
         }

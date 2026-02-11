@@ -16,17 +16,12 @@ const DriverManagement = () => {
         status: 'Active'
     });
 
-    useEffect(() => {
-        fetchDrivers();
-        fetchPlants();
-    }, []);
-
     const fetchDrivers = async () => {
         try {
             const response = await api.get('/drivers/');
             setDrivers(response.data);
-        } catch (err) {
-            console.error("Error fetching drivers", err);
+        } catch {
+            console.error("Error fetching drivers");
         }
     };
 
@@ -34,10 +29,19 @@ const DriverManagement = () => {
         try {
             const response = await api.get('/locations/');
             setPlants(response.data);
-        } catch (err) {
-            console.error("Error fetching plants", err);
+        } catch {
+            console.error("Error fetching plants");
         }
     };
+
+     
+    useEffect(() => {
+        const loadData = async () => {
+            await fetchDrivers();
+            await fetchPlants();
+        };
+        loadData();
+    }, []);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -61,7 +65,7 @@ const DriverManagement = () => {
             try {
                 await api.delete(`/drivers/${id}`);
                 fetchDrivers();
-            } catch (err) {
+            } catch {
                 alert("Cannot delete driver.");
             }
         }

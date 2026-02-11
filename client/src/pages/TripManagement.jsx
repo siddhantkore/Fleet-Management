@@ -101,7 +101,7 @@ const TripManagement = () => {
         try {
             await api.post(`/trips/${trip_id}/start`);
             fetchTrips();
-        } catch (error) {
+        } catch {
             alert('Failed to start trip');
         }
     };
@@ -110,7 +110,7 @@ const TripManagement = () => {
         try {
             await api.post(`/trips/${trip_id}/complete`);
             fetchTrips();
-        } catch (error) {
+        } catch {
             alert('Failed to complete trip');
         }
     };
