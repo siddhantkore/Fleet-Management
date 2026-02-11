@@ -1,6 +1,8 @@
-from pydantic import BaseModel, EmailStr
 from datetime import datetime
 from typing import Optional
+
+from pydantic import BaseModel, EmailStr
+
 
 class ContactSubmissionBase(BaseModel):
     name: str
@@ -8,6 +10,7 @@ class ContactSubmissionBase(BaseModel):
     phone: Optional[str] = None
     subject: str
     message: str
+
 
 class ContactSubmissionCreate(ContactSubmissionBase):
     pass
@@ -19,9 +22,10 @@ class ContactSubmissionCreate(ContactSubmissionBase):
                 "email": "john@example.com",
                 "phone": "+1234567890",
                 "subject": "Fleet Inquiry",
-                "message": "I'm interested in your fleet management solution"
+                "message": "I'm interested in your fleet management solution",
             }
         }
+
 
 class ContactSubmissionResponse(ContactSubmissionBase):
     id: int
@@ -29,6 +33,7 @@ class ContactSubmissionResponse(ContactSubmissionBase):
 
     class Config:
         from_attributes = True
+
 
 class ContactSubmissionList(BaseModel):
     id: int

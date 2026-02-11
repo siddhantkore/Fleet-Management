@@ -1,10 +1,13 @@
-from sqlalchemy import Column, String, Float, DateTime, ForeignKey, Text
+from sqlalchemy import Column, DateTime, Float, ForeignKey, String, Text
+
 from app.database import Base
+
 
 class Trip(Base):
     """
     Trip planning and tracking model.
     """
+
     __tablename__ = "trips"
 
     trip_id = Column(String(50), primary_key=True, index=True)
@@ -16,8 +19,8 @@ class Trip(Base):
     end_time = Column(DateTime, nullable=True)
     distance_km = Column(Float, nullable=False)
     cargo_weight = Column(Float, nullable=True)
-    status = Column(String(20), default="Planned") # Planned, In-Transit, Completed, Cancelled
-    summary = Column(Text, nullable=True) # LLM generated summary for selection
+    status = Column(String(20), default="Planned")  # Planned, In-Transit, Completed, Cancelled
+    summary = Column(Text, nullable=True)  # LLM generated summary for selection
 
     def __repr__(self):
         """

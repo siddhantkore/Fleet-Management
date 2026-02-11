@@ -1,12 +1,14 @@
-from pydantic import BaseModel
 from datetime import date
 from typing import Optional
+
+from pydantic import BaseModel
+
 
 class DriverBase(BaseModel):
     """
     Base schema for Driver data.
     """
-    
+
     driver_id: str
     name: str
     license_no: str
@@ -18,11 +20,14 @@ class DriverBase(BaseModel):
     is_on_leave: Optional[bool] = False
     rating: Optional[float] = 5.0
 
+
 class DriverCreate(DriverBase):
     """
     Schema for creating a new Driver.
     """
+
     pass
+
 
 class DriverUpdate(BaseModel):
     name: str | None = None
@@ -33,9 +38,11 @@ class DriverUpdate(BaseModel):
     status: str | None = None
     rating: float | None = None
 
+
 class DriverResponse(DriverBase):
     """
     Schema for Driver response.
     """
+
     class Config:
         from_attributes = True

@@ -1,11 +1,14 @@
-from pydantic import BaseModel
 from datetime import datetime
 from typing import Optional
+
+from pydantic import BaseModel
+
 
 class TripBase(BaseModel):
     """
     Base schema for Trip data.
     """
+
     trip_id: str
     vehicle_id: str
     driver_id: str
@@ -18,25 +21,31 @@ class TripBase(BaseModel):
     status: str
     summary: Optional[str] = None
 
+
 class TripCreate(TripBase):
     """
     Schema for creating a new Trip.
     """
+
     pass
+
 
 class TripScheduleRequest(BaseModel):
     """
     Schema for admin to request a trip schedule.
     """
-    from_loc: str # location_id or "lat,lng"
-    to_loc: str # location_id or "lat,lng"
+
+    from_loc: str  # location_id or "lat,lng"
+    to_loc: str  # location_id or "lat,lng"
     start_time: datetime
     cargo_weight: float
     optimize: Optional[bool] = True
+
 
 class TripResponse(TripBase):
     """
     Schema for Trip response.
     """
+
     class Config:
         from_attributes = True

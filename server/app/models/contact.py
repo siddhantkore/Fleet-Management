@@ -1,11 +1,15 @@
-from sqlalchemy import Column, Integer, String, DateTime, Text, Float, ForeignKey
 from datetime import datetime
+
+from sqlalchemy import Column, DateTime, Integer, String, Text
+
 from app.database import Base
+
 
 class ContactSubmission(Base):
     """
     Model for storing contact form submissions from the landing page.
     """
+
     __tablename__ = "contact_submissions"
 
     id = Column(Integer, primary_key=True, index=True)

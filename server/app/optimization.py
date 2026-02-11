@@ -1,21 +1,24 @@
 import math
+
 from sqlalchemy.orm import Session
-from app.models.vehicle import Vehicle
+
 from app.models.driver import Driver
 from app.models.location import Location
-from datetime import datetime
+from app.models.vehicle import Vehicle
+
 
 def haversine(lat1, lon1, lat2, lon2):
     """
-    Calculate the great-circle distance between two points 
+    Calculate the great-circle distance between two points
     on the Earth's surface using the Haversine formula.
     """
     R = 6371  # Earth radius in kilometers
     phi1, phi2 = math.radians(lat1), math.radians(lat2)
     dphi = math.radians(lat2 - lat1)
     dlambda = math.radians(lon2 - lon1)
-    a = math.sin(dphi / 2)**2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda / 2)**2
+    a = math.sin(dphi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda / 2) ** 2
     return 2 * R * math.asin(math.sqrt(a))
+
 
 def get_coordinates(db: Session, loc_id_or_coords: str):
     """
@@ -37,7 +40,7 @@ def get_coordinates(db: Session, loc_id_or_coords: str):
                     type="Custom",
                     latitude=lat,
                     longitude=lon,
-                    city="Unknown"
+                    city="Unknown",
                 )
                 db.add(new_loc)
                 db.commit()
@@ -46,12 +49,13 @@ def get_coordinates(db: Session, loc_id_or_coords: str):
         except Exception as e:
             print(f"Error parsing coordinates: {e}")
             pass
-    
+
     loc = db.query(Location).filter(Location.location_id == loc_id_or_coords).first()
     if loc:
         return loc.latitude, loc.longitude, loc.location_id
-    
+
     return None, None, None
+
 
 def optimize_trip(db: Session, from_loc: str, to_loc: str, cargo_weight: float):
     """
@@ -65,10 +69,11 @@ def optimize_trip(db: Session, from_loc: str, to_loc: str, cargo_weight: float):
 
     # 1. Vehicle Selection Logic
     # Filter: Available, and can carry the cargo
-    available_vehicles = db.query(Vehicle).filter(
-        Vehicle.current_status == "Available",
-        Vehicle.capacity_kg >= cargo_weight
-    ).all()
+    available_vehicles = (
+        db.query(Vehicle)
+        .filter(Vehicle.current_status == "Available", Vehicle.capacity_kg >= cargo_weight)
+        .all()
+    )
 
     if not available_vehicles:
         return None, "No available vehicles found with sufficient capacity."
@@ -77,58 +82,83 @@ def optimize_trip(db: Session, from_loc: str, to_loc: str, cargo_weight: float):
     # For now, let's assume they are at their home plant.
     # Improvement: Find vehicles at the same plant as 'from_loc'
     at_plant_vehicles = [v for v in available_vehicles if v.plant_loc_id == from_id]
-    
+
     if at_plant_vehicles:
         # Pick the one with the lowest cost per km
         at_plant_vehicles.sort(key=lambda x: x.cost_per_km)
         selected_vehicle = at_plant_vehicles[0]
-        vehicle_reason = f"Vehicle {selected_vehicle.vehicle_id} is already at the starting plant and has the lowest operational cost."
+        vehicle_reason = (
+            f"Vehicle {selected_vehicle.vehicle_id} is already at the starting"
+            f" plant and has the lowest operational cost."
+        )
     else:
         # Pick any available vehicle with lowest cost
         available_vehicles.sort(key=lambda x: x.cost_per_km)
         selected_vehicle = available_vehicles[0]
-        vehicle_reason = f"Vehicle {selected_vehicle.vehicle_id} was selected based on its efficiency and availability."
+        vehicle_reason = (
+            f"Vehicle {selected_vehicle.vehicle_id} was selected based on its"
+            f" efficiency and availability."
+        )
 
     # 2. Driver Selection Logic
     # Filter: Active, Available, Not on leave
-    available_drivers = db.query(Driver).filter(
-        Driver.status == "Active",
-        Driver.current_status == "Available",
-        Driver.is_on_leave == False
-    ).all()
+    available_drivers = (
+        db.query(Driver)
+        .filter(
+            Driver.status == "Active",
+            Driver.current_status == "Available",
+            Driver.is_on_leave is False,
+        )
+        .all()
+    )
 
     if not available_drivers:
         return None, "No available drivers found at the moment."
 
     # Preference for drivers at the same home plant
     at_plant_drivers = [d for d in available_drivers if d.home_plant_id == from_id]
-    
+
     if at_plant_drivers:
         at_plant_drivers.sort(key=lambda x: x.rating, reverse=True)
         selected_driver = at_plant_drivers[0]
-        driver_reason = f"Driver {selected_driver.name} is stationed at this plant and has a high performance rating of {selected_driver.rating}."
+        driver_reason = (
+            f"Driver {selected_driver.name} is stationed at this plant and has"
+            f" a high performance rating of {selected_driver.rating}."
+        )
     else:
         available_drivers.sort(key=lambda x: x.rating, reverse=True)
         selected_driver = available_drivers[0]
-        driver_reason = f"Driver {selected_driver.name} was selected based on their high performance rating and current availability."
+        driver_reason = (
+            f"Driver {selected_driver.name} was selected based on their high"
+            f" performance rating and current availability."
+        )
 
     distance = haversine(from_lat, from_lon, to_lat, to_lon)
-    
-    summary = f"""**Trip Optimization Report**
 
-Based on the requirement to transport {cargo_weight} kg from {from_id} to {to_id}, our optimization engine has selected the following:
+    summary = (
+        f"""**Trip Optimization Report**
+
+Based on the requirement to transport {cargo_weight} kg from {from_id} to """
+        f"""{to_id}, our optimization engine has selected the following:
 
 **Selected Vehicle:** {selected_vehicle.vehicle_id} ({selected_vehicle.license_plate})
-- **Reasoning:** {vehicle_reason} It has a capacity of {selected_vehicle.capacity_kg}kg, which comfortably fits the cargo. Its fuel type ({selected_vehicle.fuel_type}) and cost of ${selected_vehicle.cost_per_km}/km make it the most economical choice for this {distance:.2f} km route.
+- **Reasoning:** {vehicle_reason} It has a capacity of """
+        f"""{selected_vehicle.capacity_kg}kg, which comfortably fits the cargo. Its """
+        f"""fuel type ({selected_vehicle.fuel_type}) and cost of """
+        f"""${selected_vehicle.cost_per_km}/km make it the most economical choice """
+        f"""for this {distance:.2f} km route.
 
 **Selected Driver:** {selected_driver.name}
-- **Reasoning:** {driver_reason} The driver is currently in 'Active' status and is not on leave. Their history of {selected_driver.rating}/5.0 stars ensures high service quality for this delivery.
+- **Reasoning:** {driver_reason} The driver is currently in 'Active' status and """
+        f"""is not on leave. Their history of {selected_driver.rating}/5.0 stars """
+        f"""ensures high service quality for this delivery.
 
 **Route Statistics:**
 - **Mode:** Direct Route (Haversine Optimized)
 - **Estimated Distance:** {distance:.2f} km
-- **Estimated Operational Cost:** ${ (distance * selected_vehicle.cost_per_km):.2f}
+- **Estimated Operational Cost:** ${{(distance * selected_vehicle.cost_per_km):.2f}}
 """
+    )
 
     return {
         "vehicle_id": selected_vehicle.vehicle_id,
@@ -136,5 +166,5 @@ Based on the requirement to transport {cargo_weight} kg from {from_id} to {to_id
         "distance_km": round(distance, 2),
         "summary": summary,
         "from_id": from_id,
-        "to_id": to_id
+        "to_id": to_id,
     }, None

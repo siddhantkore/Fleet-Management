@@ -1,10 +1,13 @@
-from sqlalchemy import Column, String, Float, Date, ForeignKey, Boolean
+from sqlalchemy import Boolean, Column, Date, Float, ForeignKey, String
+
 from app.database import Base
+
 
 class Driver(Base):
     """
     Driver master data model.
     """
+
     __tablename__ = "drivers"
 
     driver_id = Column(String(50), primary_key=True, index=True)
@@ -13,8 +16,8 @@ class Driver(Base):
     license_expiry = Column(Date, nullable=False)
     phone = Column(String(20), nullable=False)
     home_plant_id = Column(String(50), ForeignKey("locations.location_id"), nullable=False)
-    status = Column(String(20), default="Active") # Active, Inactive
-    current_status = Column(String(20), default="Available") # Available, On-Trip
+    status = Column(String(20), default="Active")  # Active, Inactive
+    current_status = Column(String(20), default="Available")  # Available, On-Trip
     is_on_leave = Column(Boolean, default=False)
     rating = Column(Float, default=5.0)
 

@@ -1,10 +1,13 @@
-from sqlalchemy import Column, String, Float, ForeignKey
+from sqlalchemy import Column, Float, ForeignKey, String
+
 from app.database import Base
+
 
 class Vehicle(Base):
     """
     Vehicle master data model.
     """
+
     __tablename__ = "vehicles"
 
     vehicle_id = Column(String(50), primary_key=True, index=True)

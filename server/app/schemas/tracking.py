@@ -1,11 +1,14 @@
-from pydantic import BaseModel, Field
-from typing import Optional, List
 from datetime import datetime
+from typing import Optional
+
+from pydantic import BaseModel, Field
+
 
 class OwnTracksLocation(BaseModel):
     """
     Schema for OwnTracks HTTP location message.
     """
+
     type: str = Field(alias="_type", default="location")
     lat: float
     lon: float
@@ -17,10 +20,12 @@ class OwnTracksLocation(BaseModel):
     alt: Optional[float] = None  # altitude
     acc: Optional[float] = None  # accuracy
 
+
 class LiveLocationResponse(BaseModel):
     """
     Schema for sending live location to frontend.
     """
+
     driver_id: str
     latitude: float
     longitude: float

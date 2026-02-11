@@ -1,6 +1,6 @@
 # Fleet Management Backend - FastAPI Server
 
-## 🏗️ Project Structure
+## Project Structure
 
 ```
 server/
@@ -31,7 +31,7 @@ server/
     └── test_*.py             # Test files
 ```
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 - Python 3.11+
@@ -76,7 +76,7 @@ docker-compose up --build
 
 ---
 
-## 📦 Module Guide
+## Module Guide
 
 ### `main.py` - Application Entry Point
 - Creates and configures FastAPI app
@@ -127,7 +127,7 @@ docker-compose up --build
 
 ---
 
-## 🔌 API Endpoints
+## API Endpoints
 
 ### Status Endpoints
 ```bash
@@ -163,7 +163,7 @@ curl -X DELETE http://localhost:8000/api/contact/1
 
 ---
 
-## 📊 Database
+## Database
 
 ### Tables
 
@@ -185,13 +185,13 @@ curl -X DELETE http://localhost:8000/api/contact/1
 
 ---
 
-## 🔒 Security
+## Security
 
 ### Current
-✅ CORS enabled  
-✅ Pydantic validation  
-✅ SQLAlchemy ORM protection  
-✅ Email validation  
+CORS enabled  
+Pydantic validation  
+SQLAlchemy ORM protection  
+Email validation  
 
 ### Production Checklist
 - [ ] Restrict CORS origins
@@ -205,7 +205,7 @@ curl -X DELETE http://localhost:8000/api/contact/1
 
 ---
 
-## 🧪 Testing
+## Testing
 
 Test framework is ready for implementation:
 
@@ -225,7 +225,7 @@ pytest --cov=app --cov-report=html
 
 ---
 
-## 📝 Adding New Features
+## Adding New Features
 
 ### Example: Add a Vehicle Endpoint
 
@@ -264,7 +264,7 @@ app.include_router(vehicle.router)
 
 ---
 
-## 📚 Documentation
+## Documentation
 
 ### Detailed Documentation
 - [Project Structure Guide](./STRUCTURE.md) - In-depth structure explanation
@@ -278,7 +278,7 @@ app.include_router(vehicle.router)
 
 ---
 
-## 🐛 Troubleshooting
+## Troubleshooting
 
 ### Database Connection Failed
 ```bash
@@ -312,7 +312,7 @@ kill -9 <PID>
 
 ---
 
-## 📦 Dependencies
+## Dependencies
 
 ### Core
 - **fastapi** - Web framework
@@ -335,9 +335,9 @@ See [requirements.txt](./requirements.txt) for complete list.
 
 ---
 
-## 🎯 Next Steps
+## Next Steps
 
-### Phase 1 (Current) ✅
+### Phase 1 (Current)
 - [x] FastAPI server setup
 - [x] PostgreSQL integration
 - [x] Contact form backend
@@ -358,13 +358,10 @@ See [requirements.txt](./requirements.txt) for complete list.
 
 ---
 
-## 🔗 Related Files
+## Related Files
 
 - Frontend: `../client/` - React application
 - Documentation: `../docs/` - System requirements
 - Docker Setup: `../docker-compose.yml`
 
 ---
-
-**Last Updated**: February 5, 2026  
-**Version**: 1.0.0
