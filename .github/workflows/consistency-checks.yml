@@ -1,0 +1,201 @@
+name: Code Consistency Checks
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  frontend-lint:
+    runs-on: ubuntu-latest
+    name: Frontend Linting & Build
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: 'client/package-lock.json'
+
+      - name: Install dependencies
+        working-directory: ./client
+        run: npm ci
+
+      - name: Run ESLint
+        working-directory: ./client
+        run: npm run lint
+        continue-on-error: false
+
+      - name: Build frontend
+        working-directory: ./client
+        run: npm run build
+        continue-on-error: false
+
+  backend-lint:
+    runs-on: ubuntu-latest
+    name: Backend Python Checks
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        working-directory: ./server
+        run: pip install -r requirements.txt && pip install flake8 black isort
+
+      - name: Format check with Black
+        working-directory: ./server
+        run: black --check app/
+
+      - name: Import sort check with isort
+        working-directory: ./server
+        run: isort --check-only app/
+
+      - name: Lint with Flake8
+        working-directory: ./server
+        run: flake8 app/ --max-line-length=100 --exclude=__pycache__,*/migrations/*
+        continue-on-error: true
+
+  dependency-check:
+    runs-on: ubuntu-latest
+    name: Dependency & Security Checks
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Check npm dependencies in client
+        working-directory: ./client
+        run: |
+          npm audit --audit-level=moderate || true
+          npm list --depth=0
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Check Python dependencies
+        working-directory: ./server
+        run: |
+          pip install safety
+          safety check --json || true
+
+  consistency-check:
+    runs-on: ubuntu-latest
+    name: File & Import Consistency
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Check for trailing whitespace
+        run: |
+          echo "Checking for trailing whitespace..."
+          if grep -r '[[:space:]]$' --include="*.py" --include="*.jsx" --include="*.js" --include="*.css" --exclude-dir=node_modules --exclude-dir=__pycache__ .; then
+            echo "Trailing whitespace found"
+            exit 1
+          else
+            echo "No trailing whitespace"
+          fi
+
+      - name: Check for mixed line endings
+        run: |
+          echo "Checking for mixed line endings..."
+          if find . -type f \( -name "*.py" -o -name "*.jsx" -o -name "*.js" -o -name "*.css" \) ! -path "*/node_modules/*" ! -path "*/.git/*" ! -path "*/__pycache__/*" -exec grep -l $'\r' {} \;; then
+            echo "Warning: Mixed line endings detected (CRLF)"
+          else
+            echo "No mixed line endings"
+          fi
+
+      - name: Check import consistency
+        run: |
+          echo "Checking for common import issues..."
+          # Check for missing default imports in JS/JSX files
+          if grep -r "import.*from.*api.js" --include="*.jsx" --include="*.js" | grep "{ api }" ; then
+            echo "Found inconsistent named imports of api (should use default import)"
+          fi
+          echo "Import consistency check completed"
+
+      - name: Check for TODO comments
+        run: |
+          echo "Checking for unresolved TODOs..."
+          if grep -r "TODO\|FIXME\|HACK\|XXX" --include="*.py" --include="*.jsx" --include="*.js" | head -20; then
+            echo "Found TODO/FIXME comments - review before merging"
+          else
+            echo "No TODO/FIXME comments"
+          fi
+
+  docker-build-check:
+    runs-on: ubuntu-latest
+    name: Docker Build Validation
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Validate docker-compose.yml
+        uses: docker/setup-buildx-action@v2
+
+      - name: Check docker-compose syntax
+        run: |
+          docker-compose config > /dev/null
+          echo "docker-compose.yml is valid"
+
+      - name: Build frontend Docker image
+        run: |
+          cd client
+          docker build -t fleet-management-frontend:latest .
+          echo "Frontend Docker image built successfully"
+
+      - name: Build backend Docker image
+        run: |
+          cd server
+          docker build -t fleet-management-backend:latest .
+          echo "Backend Docker image built successfully"
+
+  summary:
+    runs-on: ubuntu-latest
+    name: Consistency Check Summary
+    needs: [frontend-lint, backend-lint, dependency-check, consistency-check, docker-build-check]
+    if: always()
+
+    steps:
+      - name: Print Summary
+        run: |
+          echo "════════════════════════════════════════"
+          echo "      Code Consistency Check Summary"
+          echo "════════════════════════════════════════"
+          echo "All checks completed!"
+          echo ""
+          echo "Checks performed:"
+          echo " - Frontend Linting & Build"
+          echo " - Backend Python Checks"
+          echo " - Dependency & Security"
+          echo " - File & Import Consistency"
+          echo " - Docker Build Validation"
+          echo ""
+          echo "For details, check the logs above."
+          echo "════════════════════════════════════════"
+
+      - name: Check Results
+        if: failure()
+        run: |
+          echo "Some checks failed. Please review the logs above."
+          exit 1
