@@ -25,3 +25,9 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 24 hours
 
 # Logging configuration
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
+
+# Routing/Maps configuration
+OPENROUTES_API_KEY = os.getenv("OPENROUTES_API_KEY", "")
+OPENROUTES_BASE_URL = os.getenv("OPENROUTES_BASE_URL", "https://api.openrouteservice.org")
+OPENROUTES_PROFILE = os.getenv("OPENROUTES_PROFILE", "driving-hgv")
+OPENROUTES_TIMEOUT_SECONDS = float(os.getenv("OPENROUTES_TIMEOUT_SECONDS", "6"))

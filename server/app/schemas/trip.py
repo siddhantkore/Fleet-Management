@@ -39,6 +39,7 @@ class TripScheduleRequest(BaseModel):
     to_loc: str  # location_id or "lat,lng"
     start_time: datetime
     cargo_weight: float
+    cargo_volume_cbm: Optional[float] = 0.0
     optimize: Optional[bool] = True
 
 

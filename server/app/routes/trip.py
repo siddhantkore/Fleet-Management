@@ -27,7 +27,11 @@ def schedule_trip(
     Schedules a trip using optimization logic.
     """
     optimized_data, error = optimize_trip(
-        db, request.from_loc, request.to_loc, request.cargo_weight
+        db,
+        request.from_loc,
+        request.to_loc,
+        request.cargo_weight,
+        request.cargo_volume_cbm or 0.0,
     )
     if error:
         raise HTTPException(status_code=400, detail=error)
@@ -58,6 +62,14 @@ def schedule_trip(
                 detail=(
                     f"Cargo weight {request.cargo_weight} exceeds vehicle capacity"
                     f" {vehicle.capacity_kg}"
+                ),
+            )
+        if (request.cargo_volume_cbm or 0.0) > vehicle.volume_cbm:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    f"Cargo volume {request.cargo_volume_cbm} exceeds vehicle volume capacity"
+                    f" {vehicle.volume_cbm}"
                 ),
             )
         vehicle.current_status = "Assigned"
