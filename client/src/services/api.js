@@ -3,13 +3,13 @@ import axios from 'axios';
 const getBaseURL = () => {
     const host = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
     const protocol = typeof window !== 'undefined' && window.location.protocol === 'https:' ? 'https' : 'http';
-    
+
     // Support for GitHub Codespaces / Gitpod where ports are subdomains
     if (host.includes('.app.github.dev') || host.includes('.gitpod.io')) {
         const backendHost = host.replace('-5173', '-8000');
         return `${protocol}://${backendHost}/api/v1/`;
     }
-    
+
     return `${protocol}://${host}:8000/api/v1/`;
 };
 

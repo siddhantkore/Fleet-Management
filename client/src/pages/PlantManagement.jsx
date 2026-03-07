@@ -34,7 +34,7 @@ const PlantManagement = () => {
         }
     };
 
-     
+
     useEffect(() => {
         const loadData = async () => {
             await fetchPlants();
@@ -131,19 +131,19 @@ const PlantManagement = () => {
                         <form onSubmit={handleSubmit}>
                             <div className="form-group">
                                 <label>Location ID</label>
-                                <input 
-                                    disabled={!!editingPlant} 
-                                    value={formData.location_id} 
-                                    onChange={e => setFormData({...formData, location_id: e.target.value})} 
-                                    required 
+                                <input
+                                    disabled={!!editingPlant}
+                                    value={formData.location_id}
+                                    onChange={e => setFormData({...formData, location_id: e.target.value})}
+                                    required
                                 />
                             </div>
                             <div className="form-group">
                                 <label>Name</label>
-                                <input 
-                                    value={formData.name} 
-                                    onChange={e => setFormData({...formData, name: e.target.value})} 
-                                    required 
+                                <input
+                                    value={formData.name}
+                                    onChange={e => setFormData({...formData, name: e.target.value})}
+                                    required
                                 />
                             </div>
                             <div className="form-row">
@@ -157,27 +157,27 @@ const PlantManagement = () => {
                                 </div>
                                 <div className="form-group">
                                     <label>City</label>
-                                    <input 
-                                        value={formData.city} 
-                                        onChange={e => setFormData({...formData, city: e.target.value})} 
-                                        required 
+                                    <input
+                                        value={formData.city}
+                                        onChange={e => setFormData({...formData, city: e.target.value})}
+                                        required
                                     />
                                 </div>
                             </div>
-                            
+
                             <div className="form-group" style={{ marginBottom: '1rem' }}>
                                 <label>Select Location on Map</label>
                                 <div style={{ height: '250px', width: '100%', borderRadius: '8px', overflow: 'hidden', border: '1px solid #e2e8f0' }}>
-                                    <MapContainer 
-                                        center={formData.latitude && formData.longitude ? [parseFloat(formData.latitude), parseFloat(formData.longitude)] : [18.5204, 73.8567]} 
-                                        zoom={13} 
+                                    <MapContainer
+                                        center={formData.latitude && formData.longitude ? [parseFloat(formData.latitude), parseFloat(formData.longitude)] : [18.5204, 73.8567]}
+                                        zoom={13}
                                         style={{ height: '100%', width: '100%' }}
                                     >
                                         <TileLayer
                                             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                                             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                                         />
-                                        <LocationPicker 
+                                        <LocationPicker
                                             position={formData.latitude && formData.longitude ? [parseFloat(formData.latitude), parseFloat(formData.longitude)] : null}
                                             onLocationSelect={(latlng) => {
                                                 setFormData({
@@ -195,20 +195,20 @@ const PlantManagement = () => {
                             <div className="form-row">
                                 <div className="form-group">
                                     <label>Latitude</label>
-                                    <input 
-                                        type="number" step="any" 
-                                        value={formData.latitude} 
-                                        onChange={e => setFormData({...formData, latitude: e.target.value})} 
-                                        required 
+                                    <input
+                                        type="number" step="any"
+                                        value={formData.latitude}
+                                        onChange={e => setFormData({...formData, latitude: e.target.value})}
+                                        required
                                     />
                                 </div>
                                 <div className="form-group">
                                     <label>Longitude</label>
-                                    <input 
-                                        type="number" step="any" 
-                                        value={formData.longitude} 
-                                        onChange={e => setFormData({...formData, longitude: e.target.value})} 
-                                        required 
+                                    <input
+                                        type="number" step="any"
+                                        value={formData.longitude}
+                                        onChange={e => setFormData({...formData, longitude: e.target.value})}
+                                        required
                                     />
                                 </div>
                             </div>

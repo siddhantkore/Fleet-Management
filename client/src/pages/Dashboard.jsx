@@ -33,9 +33,9 @@ const Dashboard = () => {
                 </div>
                 <nav className="sidebar-nav">
                     {navItems.map(item => (
-                        <Link 
-                            key={item.path} 
-                            to={item.path} 
+                        <Link
+                            key={item.path}
+                            to={item.path}
                             className={`nav-item ${location.pathname === item.path ? 'active' : ''}`}
                         >
                             <span className="nav-icon">{item.icon()}</span>

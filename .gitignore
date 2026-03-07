@@ -18,3 +18,8 @@ build/
 *.egg-info/
 
 p.text
+
+
+CODE_QUALITY.md
+CONTRIBUTING.md
+init-db/

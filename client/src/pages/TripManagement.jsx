@@ -35,9 +35,9 @@ const SelectionMap = ({ plants, onPointSelect, selectedFrom, selectedTo }) => {
         <>
             <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
             {plants.map(plant => (
-                <Marker 
-                    key={plant.location_id} 
-                    position={[plant.latitude, plant.longitude]} 
+                <Marker
+                    key={plant.location_id}
+                    position={[plant.latitude, plant.longitude]}
                     icon={plantIcon}
                     eventHandlers={{
                         click: (e) => {
@@ -195,8 +195,8 @@ const TripManagement = () => {
     return (
         <div className="trip-management">
             <div className="header-actions">
-                <button 
-                    className="add-btn" 
+                <button
+                    className="add-btn"
                     onClick={() => setShowForm(!showForm)}
                 >
                     {showForm ? 'Cancel' : 'Schedule New Trip'}
@@ -211,9 +211,9 @@ const TripManagement = () => {
                             <div className="form-group">
                                 <label>From Location</label>
                                 <div className="input-with-action">
-                                    <select 
-                                        name="from_loc" 
-                                        value={formData.from_loc} 
+                                    <select
+                                        name="from_loc"
+                                        value={formData.from_loc}
                                         onChange={handleInputChange}
                                         required
                                     >
@@ -225,8 +225,8 @@ const TripManagement = () => {
                                             <option value={formData.from_loc}>{formData.from_loc}</option>
                                         )}
                                     </select>
-                                    <button 
-                                        type="button" 
+                                    <button
+                                        type="button"
                                         className={`map-picker-btn ${selectionMode === 'from' ? 'active' : ''}`}
                                         onClick={() => setSelectionMode(selectionMode === 'from' ? null : 'from')}
                                     >
@@ -237,9 +237,9 @@ const TripManagement = () => {
                             <div className="form-group">
                                 <label>To Location</label>
                                 <div className="input-with-action">
-                                    <select 
-                                        name="to_loc" 
-                                        value={formData.to_loc} 
+                                    <select
+                                        name="to_loc"
+                                        value={formData.to_loc}
                                         onChange={handleInputChange}
                                         required
                                     >
@@ -251,8 +251,8 @@ const TripManagement = () => {
                                             <option value={formData.to_loc}>{formData.to_loc}</option>
                                         )}
                                     </select>
-                                    <button 
-                                        type="button" 
+                                    <button
+                                        type="button"
                                         className={`map-picker-btn ${selectionMode === 'to' ? 'active' : ''}`}
                                         onClick={() => setSelectionMode(selectionMode === 'to' ? null : 'to')}
                                     >
@@ -263,26 +263,26 @@ const TripManagement = () => {
                             <div className="form-row">
                                 <div className="form-group">
                                     <label>Start Time</label>
-                                    <input 
-                                        type="datetime-local" 
-                                        name="start_time" 
-                                        value={formData.start_time} 
+                                    <input
+                                        type="datetime-local"
+                                        name="start_time"
+                                        value={formData.start_time}
                                         onChange={handleInputChange}
                                         required
                                     />
                                 </div>
                                 <div className="form-group">
                                     <label>Weight (kg)</label>
-                                    <input 
-                                        type="number" 
-                                        name="cargo_weight" 
-                                        value={formData.cargo_weight} 
+                                    <input
+                                        type="number"
+                                        name="cargo_weight"
+                                        value={formData.cargo_weight}
                                         onChange={handleInputChange}
                                         required
                                     />
                                 </div>
                             </div>
-                            
+
                             <button type="submit" className="submit-btn" disabled={loading}>
                                 {loading ? 'Optimizing...' : 'Optimize and Schedule'}
                             </button>
@@ -293,9 +293,9 @@ const TripManagement = () => {
                                 {selectionMode ? `Select ${selectionMode} location on map` : 'Click icon 📍 to select from map'}
                             </p>
                             <MapContainer center={[19.0760, 72.8777]} zoom={5} style={{ height: '300px', width: '100%' }}>
-                                <SelectionMap 
-                                    plants={plants} 
-                                    onPointSelect={handlePointSelect} 
+                                <SelectionMap
+                                    plants={plants}
+                                    onPointSelect={handlePointSelect}
                                     selectedFrom={parseCoords(formData.from_loc)}
                                     selectedTo={parseCoords(formData.to_loc)}
                                 />
@@ -347,8 +347,8 @@ const TripManagement = () => {
                                 <td>{trip.from_loc}</td>
                                 <td>{trip.to_loc}</td>
                                 <td>
-                                    <span 
-                                        className="status-badge" 
+                                    <span
+                                        className="status-badge"
                                         style={{ backgroundColor: getStatusColor(trip.status) }}
                                     >
                                         {trip.status}
@@ -357,7 +357,7 @@ const TripManagement = () => {
                                 <td>
                                     <div className="action-buttons">
                                         {trip.status === 'Planned' && (
-                                            <button 
+                                            <button
                                                 className="action-btn start-btn"
                                                 onClick={() => handleStartTrip(trip.trip_id)}
                                             >
@@ -365,7 +365,7 @@ const TripManagement = () => {
                                             </button>
                                         )}
                                         {trip.status === 'In-Transit' && (
-                                            <button 
+                                            <button
                                                 className="action-btn complete-btn"
                                                 onClick={() => handleCompleteTrip(trip.trip_id)}
                                             >

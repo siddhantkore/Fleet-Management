@@ -4,12 +4,6 @@
 
 The **Fleet Management System** is a centralized Vehicle Allocation and Logistics Optimization platform designed for multi-plant organizations. It provides real-time tracking, automated vehicle assignment, compliance alerts, and comprehensive analytics for fleet operations.
 
-## Quick Links
-
-- 📖 [CONTRIBUTING.md](CONTRIBUTING.md) - Contribution guidelines
-- 🔍 [CODE_QUALITY.md](CODE_QUALITY.md) - Code quality standards
-- 🔄 [GitHub Workflows](.github/workflows/) - Automated checks documentation
-
 ---
 
 ## System Architecture

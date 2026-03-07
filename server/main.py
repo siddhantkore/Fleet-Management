@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 def create_app() -> FastAPI:
     """
     Create and configure the FastAPI application.
-    
+
     Returns:
         FastAPI: Configured application instance
     """
@@ -84,7 +84,7 @@ def create_app() -> FastAPI:
     app.include_router(trip.router, prefix="/api/v1")
 
     # ==================== ROOT-LEVEL HEALTH CHECK ====================
-    
+
     @app.get("/health")
     async def health():
         """

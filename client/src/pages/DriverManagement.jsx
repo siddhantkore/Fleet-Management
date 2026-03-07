@@ -34,7 +34,7 @@ const DriverManagement = () => {
         }
     };
 
-     
+
     useEffect(() => {
         const loadData = async () => {
             await fetchDrivers();
@@ -133,54 +133,54 @@ const DriverManagement = () => {
                         <form onSubmit={handleSubmit}>
                             <div className="form-group">
                                 <label>Driver ID</label>
-                                <input 
-                                    disabled={!!editingDriver} 
-                                    value={formData.driver_id} 
-                                    onChange={e => setFormData({...formData, driver_id: e.target.value})} 
-                                    required 
+                                <input
+                                    disabled={!!editingDriver}
+                                    value={formData.driver_id}
+                                    onChange={e => setFormData({...formData, driver_id: e.target.value})}
+                                    required
                                     placeholder="D001"
                                 />
                             </div>
                             <div className="form-group">
                                 <label>Full Name</label>
-                                <input 
-                                    value={formData.name} 
-                                    onChange={e => setFormData({...formData, name: e.target.value})} 
-                                    required 
+                                <input
+                                    value={formData.name}
+                                    onChange={e => setFormData({...formData, name: e.target.value})}
+                                    required
                                 />
                             </div>
                             <div className="form-row">
                                 <div className="form-group">
                                     <label>License No</label>
-                                    <input 
-                                        value={formData.license_no} 
-                                        onChange={e => setFormData({...formData, license_no: e.target.value})} 
-                                        required 
+                                    <input
+                                        value={formData.license_no}
+                                        onChange={e => setFormData({...formData, license_no: e.target.value})}
+                                        required
                                     />
                                 </div>
                                 <div className="form-group">
                                     <label>License Expiry</label>
-                                    <input 
+                                    <input
                                         type="date"
-                                        value={formData.license_expiry} 
-                                        onChange={e => setFormData({...formData, license_expiry: e.target.value})} 
-                                        required 
+                                        value={formData.license_expiry}
+                                        onChange={e => setFormData({...formData, license_expiry: e.target.value})}
+                                        required
                                     />
                                 </div>
                             </div>
                             <div className="form-row">
                                 <div className="form-group">
                                     <label>Phone</label>
-                                    <input 
-                                        value={formData.phone} 
-                                        onChange={e => setFormData({...formData, phone: e.target.value})} 
-                                        required 
+                                    <input
+                                        value={formData.phone}
+                                        onChange={e => setFormData({...formData, phone: e.target.value})}
+                                        required
                                     />
                                 </div>
                                 <div className="form-group">
                                     <label>Home Plant</label>
-                                    <select 
-                                        value={formData.home_plant_id} 
+                                    <select
+                                        value={formData.home_plant_id}
                                         onChange={e => setFormData({...formData, home_plant_id: e.target.value})}
                                         required
                                     >

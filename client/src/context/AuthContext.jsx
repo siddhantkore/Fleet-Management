@@ -18,7 +18,7 @@ export const AuthProvider = ({ children }) => {
         setToken(newToken);
     };
 
-     
+
     useEffect(() => {
         const initializeAuth = async () => {
             if (token) {

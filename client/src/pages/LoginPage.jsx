@@ -18,7 +18,7 @@ const LoginPage = () => {
             const formData = new FormData();
             formData.append('username', email);
             formData.append('password', password);
-            
+
             const response = await api.post('/users/login', formData);
             login(response.data.access_token);
             navigate('/dashboard');
@@ -36,21 +36,21 @@ const LoginPage = () => {
                 <form onSubmit={handleSubmit}>
                     <div className="form-group">
                         <label>Email</label>
-                        <input 
-                            type="email" 
-                            value={email} 
-                            onChange={(e) => setEmail(e.target.value)} 
-                            required 
+                        <input
+                            type="email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            required
                             placeholder="admin@plant.com"
                         />
                     </div>
                     <div className="form-group">
                         <label>Password</label>
-                        <input 
-                            type="password" 
-                            value={password} 
-                            onChange={(e) => setPassword(e.target.value)} 
-                            required 
+                        <input
+                            type="password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            required
                             placeholder="••••••••"
                         />
                     </div>

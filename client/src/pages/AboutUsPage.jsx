@@ -47,7 +47,7 @@ const AboutUsPage = () => {
                         <img src="https://img.freepik.com/premium-photo/transport-logistic-manager-checking-control-logistic-network-distribution-customer_1101054-33326.jpg" alt="Business Collaboration" />
                     </div>
                 </section>
-                
+
             </main>
             <Footer />
         </div>

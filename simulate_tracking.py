@@ -31,12 +31,12 @@ def simulate_driver(driver_id):
     # Random starting point around Pune
     lat = PUNE_CENTER[0] + random.uniform(-0.1, 0.1)
     lon = PUNE_CENTER[1] + random.uniform(-0.1, 0.1)
-    
+
     while True:
         # Move slightly
         lat += random.uniform(-0.001, 0.001)
         lon += random.uniform(-0.001, 0.001)
-        
+
         payload = {
             "_type": "location",
             "lat": lat,
@@ -45,27 +45,27 @@ def simulate_driver(driver_id):
             "tid": driver_id[-2:],
             "topic": f"owntracks/fleet/{driver_id}"
         }
-        
+
         try:
             url = f"{BASE_URL}/{driver_id}"
             response = requests.post(url, json=payload)
             print(f"Update for {driver_id}: {response.status_code}")
         except Exception as e:
             print(f"Error updating {driver_id}: {e}")
-            
+
         time.sleep(random.randint(5, 15))
 
 if __name__ == "__main__":
     print(f"Starting simulation for {len(DRIVERS)} drivers...")
     import threading
-    
+
     # Run a few drivers in threads to simulate simultaneous updates
     threads = []
     for i in range(10):  # Simulate 10 drivers for now
         t = threading.Thread(target=simulate_driver, args=(DRIVERS[i],), daemon=True)
         t.start()
         threads.append(t)
-        
+
     try:
         while True:
             time.sleep(1)

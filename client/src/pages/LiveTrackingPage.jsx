@@ -31,12 +31,12 @@ const LiveTrackingPage = () => {
     const wsProtocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
 
     let backendHost = `${host}:8000`;
-    
+
     // Support for GitHub Codespaces / Gitpod where ports are subdomains
     if (host.includes('.app.github.dev') || host.includes('.gitpod.io')) {
         backendHost = host.replace('-5173', '-8000');
     }
-    
+
     const WS_URL = `${wsProtocol}://${backendHost}/api/v1/tracking/ws`;
 
     useEffect(() => {
@@ -168,11 +168,11 @@ const LiveTrackingPage = () => {
                                 />
                             </LayersControl.BaseLayer>
                         </LayersControl>
-                        
+
                         {/* Render Plants */}
                         {plants.map((p) => (
-                            <Marker 
-                                key={`plant-${p.location_id}`} 
+                            <Marker
+                                key={`plant-${p.location_id}`}
                                 position={[p.latitude, p.longitude]}
                                 icon={plantIcon}
                             >
@@ -184,8 +184,8 @@ const LiveTrackingPage = () => {
                         ))}
                         {/* Render Drivers (filter out data older than 5 mins) */}
                         {filteredForMap.map((loc) => (
-                                <Marker 
-                                    key={`driver-${loc.driver_id}`} 
+                                <Marker
+                                    key={`driver-${loc.driver_id}`}
                                     position={[loc.latitude, loc.longitude]}
                                 >
                                     <Popup>
@@ -205,14 +205,14 @@ const LiveTrackingPage = () => {
                         <h3>Active Trips ({trips.length})</h3>
                         <div className="filter-hint">Select a trip to track specifically</div>
                         <ul className="trip-items">
-                            <li 
-                                className={!selectedTripId ? 'active' : ''} 
+                            <li
+                                className={!selectedTripId ? 'active' : ''}
                                 onClick={() => setSelectedTripId(null)}
                             >
                                 All Active Drivers
                             </li>
                             {trips.map(trip => (
-                                <li 
+                                <li
                                     key={trip.trip_id}
                                     className={selectedTripId === trip.trip_id ? 'active' : ''}
                                     onClick={() => setSelectedTripId(trip.trip_id)}
