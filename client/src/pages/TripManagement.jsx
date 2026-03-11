@@ -73,6 +73,7 @@ const TripManagement = () => {
         from_loc: '',
         to_loc: '',
         start_time: '',
+        end_time: '',
         cargo_weight: 0,
         optimize: true
     });
@@ -144,11 +145,13 @@ const TripManagement = () => {
         setLoading(true);
         setOptimizationResult(null);
         try {
-            const response = await api.post('/trips/schedule', {
+            const payload = {
                 ...formData,
                 start_time: new Date(formData.start_time).toISOString(),
+                end_time: formData.end_time ? new Date(formData.end_time).toISOString() : null,
                 cargo_weight: parseFloat(formData.cargo_weight)
-            });
+            };
+            const response = await api.post('/trips/schedule', payload);
             setOptimizationResult(response.data);
             fetchTrips();
             // Reset form after delay
@@ -159,6 +162,7 @@ const TripManagement = () => {
                     from_loc: '',
                     to_loc: '',
                     start_time: '',
+                    end_time: '',
                     cargo_weight: 0,
                     optimize: true
                 });
@@ -271,6 +275,18 @@ const TripManagement = () => {
                                         required
                                     />
                                 </div>
+                                <div className="form-group">
+                                    <label>End Time</label>
+                                    <input
+                                        type="datetime-local"
+                                        name="end_time"
+                                        value={formData.end_time}
+                                        onChange={handleInputChange}
+                                        min={formData.start_time || undefined}
+                                    />
+                                </div>
+                            </div>
+                            <div className="form-row">
                                 <div className="form-group">
                                     <label>Weight (kg)</label>
                                     <input

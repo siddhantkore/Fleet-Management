@@ -16,31 +16,98 @@ const plantIcon = new L.Icon({
     shadowSize: [41, 41]
 });
 
+// Green icon for active/driving drivers
+const driverActiveIcon = new L.Icon({
+    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+    shadowSize: [41, 41]
+});
+
+// Default blue icon for idle drivers
+const driverIdleIcon = new L.Icon({
+    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
+    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+    shadowSize: [41, 41]
+});
+
 const STALE_THRESHOLD_MS = 5 * 60 * 1000; // 5 minutes
 
+// ─── Helper formatters ──────────────────────────────────────────
+const formatSpeed = (ms) => {
+    if (ms == null) return '—';
+    const kmh = ms * 3.6;
+    return `${kmh.toFixed(1)} km/h`;
+};
+
+const formatBattery = (level) => {
+    if (level == null) return '—';
+    return `${(level * 100).toFixed(0)}%`;
+};
+
+const formatHeading = (deg) => {
+    if (deg == null) return '—';
+    const dirs = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+    return dirs[Math.round(deg / 45) % 8] + ` (${deg.toFixed(0)}°)`;
+};
+
+const ratingStars = (r) => {
+    if (r == null) return '—';
+    const full = Math.floor(r);
+    const half = r - full >= 0.5;
+    return '★'.repeat(full) + (half ? '½' : '') + '☆'.repeat(5 - full - (half ? 1 : 0)) + ` ${r.toFixed(1)}`;
+};
+
+// ─── Component ──────────────────────────────────────────────────
 const LiveTrackingPage = () => {
     const [locations, setLocations] = useState({});
     const [plants, setPlants] = useState([]);
     const [trips, setTrips] = useState([]);
     const [selectedTripId, setSelectedTripId] = useState(null);
     const [loading, setLoading] = useState(true);
+
+    // Detail panel state
+    const [detailPanelOpen, setDetailPanelOpen] = useState(false);
+    const [detailLoading, setDetailLoading] = useState(false);
+    const [driverDetail, setDriverDetail] = useState(null);
+
     const ws = useRef(null);
 
-    // Dynamic extraction of host to support different environments
+    // Dynamic extraction of host
     const host = window.location.hostname;
     const wsProtocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
-
     let backendHost = `${host}:8000`;
-
-    // Support for GitHub Codespaces / Gitpod where ports are subdomains
     if (host.includes('.app.github.dev') || host.includes('.gitpod.io')) {
         backendHost = host.replace('-5173', '-8000');
     }
-
     const WS_URL = `${wsProtocol}://${backendHost}/api/v1/tracking/ws`;
 
+    // ─── Fetch driver detail ────────────────────────────────────
+    const openDriverDetail = async (driverId) => {
+        setDetailPanelOpen(true);
+        setDetailLoading(true);
+        try {
+            const res = await api.get(`/tracking/driver-detail/${driverId}`);
+            setDriverDetail(res.data);
+        } catch (err) {
+            console.error('Error fetching driver detail:', err);
+            setDriverDetail(null);
+        } finally {
+            setDetailLoading(false);
+        }
+    };
+
+    const closeDetailPanel = () => {
+        setDetailPanelOpen(false);
+        setDriverDetail(null);
+    };
+
     useEffect(() => {
-        // 1. Fetch plants
         const fetchPlants = async () => {
             try {
                 const response = await api.get('locations');
@@ -50,7 +117,6 @@ const LiveTrackingPage = () => {
             }
         };
 
-        // 2. Fetch active trips
         const fetchTrips = async () => {
             try {
                 const response = await api.get('trips');
@@ -60,7 +126,6 @@ const LiveTrackingPage = () => {
             }
         };
 
-        // 3. Fetch initial locations
         const fetchLocations = async () => {
             try {
                 const response = await api.get('tracking/locations');
@@ -80,7 +145,7 @@ const LiveTrackingPage = () => {
         fetchTrips();
         fetchLocations();
 
-        // 4. Setup WebSocket
+        // WebSocket
         ws.current = new WebSocket(WS_URL);
 
         ws.current.onmessage = (event) => {
@@ -89,11 +154,10 @@ const LiveTrackingPage = () => {
                 ...prev,
                 [String(data.driver_id)]: data
             }));
-            // If new location has a trip_id, update trips if not there
             if (data.trip_id) {
                 setTrips(prev => {
                     if (!prev.find(t => t.trip_id === data.trip_id)) {
-                        fetchTrips(); // Refresh trips list
+                        fetchTrips();
                     }
                     return prev;
                 });
@@ -102,9 +166,7 @@ const LiveTrackingPage = () => {
 
         ws.current.onclose = () => {
             console.log("WebSocket disconnected. Retrying in 5s...");
-            setTimeout(() => {
-                // Simple reconnection logic could go here
-            }, 5000);
+            setTimeout(() => { }, 5000);
         };
 
         return () => {
@@ -141,6 +203,8 @@ const LiveTrackingPage = () => {
             return true;
         });
 
+    const dd = driverDetail; // shorthand
+
     return (
         <div className="live-tracking-page">
             <Navbar />
@@ -157,58 +221,63 @@ const LiveTrackingPage = () => {
                             </LayersControl.BaseLayer>
                             <LayersControl.BaseLayer name="Satellite View">
                                 <TileLayer
-                                    attribution='Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EBP, and the GIS User Community'
+                                    attribution='Tiles &copy; Esri'
                                     url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
                                 />
                             </LayersControl.BaseLayer>
                             <LayersControl.BaseLayer name="Dark Mode">
                                 <TileLayer
-                                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+                                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
                                     url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
                                 />
                             </LayersControl.BaseLayer>
                         </LayersControl>
 
-                        {/* Render Plants */}
+                        {/* Plants */}
                         {plants.map((p) => (
-                            <Marker
-                                key={`plant-${p.location_id}`}
-                                position={[p.latitude, p.longitude]}
-                                icon={plantIcon}
-                            >
+                            <Marker key={`plant-${p.location_id}`} position={[p.latitude, p.longitude]} icon={plantIcon}>
                                 <Popup>
                                     <strong>Plant:</strong> {p.name}<br />
                                     <strong>City:</strong> {p.city}
                                 </Popup>
                             </Marker>
                         ))}
-                        {/* Render Drivers (filter out data older than 5 mins) */}
-                        {filteredForMap.map((loc) => (
+
+                        {/* Drivers */}
+                        {filteredForMap.map((loc) => {
+                            const isDriving = loc.activity_type === 'driving' || (loc.speed != null && loc.speed > 2);
+                            return (
                                 <Marker
                                     key={`driver-${loc.driver_id}`}
                                     position={[loc.latitude, loc.longitude]}
+                                    icon={isDriving ? driverActiveIcon : driverIdleIcon}
                                 >
                                     <Popup>
-                                        <div>
-                                            <strong>Driver:</strong> {loc.driver_name || loc.driver_id}<br />
-                                            <strong>ID:</strong> {loc.driver_id}<br />
-                                            {loc.trip_id && <><strong>Trip ID:</strong> {loc.trip_id}<br /></>}
-                                            <strong>Last Updated:</strong> {new Date(loc.updated_at).toLocaleString()}
+                                        <div className="marker-popup">
+                                            <strong>{loc.driver_name || loc.driver_id}</strong>
+                                            <span className="popup-id">ID: {loc.driver_id}</span>
+                                            {loc.speed != null && <span className="popup-speed">🚗 {formatSpeed(loc.speed)}</span>}
+                                            {loc.battery_level != null && <span className="popup-battery">🔋 {formatBattery(loc.battery_level)}</span>}
+                                            {loc.activity_type && <span className={`popup-activity ${loc.activity_type}`}>● {loc.activity_type}</span>}
+                                            {loc.trip_id && <span className="popup-trip">Trip: {loc.trip_id}</span>}
+                                            <span className="popup-time">Updated: {new Date(loc.updated_at).toLocaleString()}</span>
+                                            <button className="popup-detail-btn" onClick={() => openDriverDetail(loc.driver_id)}>
+                                                View Full Details →
+                                            </button>
                                         </div>
                                     </Popup>
                                 </Marker>
-                            ))}
+                            );
+                        })}
                     </MapContainer>
                 </div>
+
                 <div className="tracking-info-grid">
                     <div className="info-card trip-list">
                         <h3>Active Trips ({trips.length})</h3>
                         <div className="filter-hint">Select a trip to track specifically</div>
                         <ul className="trip-items">
-                            <li
-                                className={!selectedTripId ? 'active' : ''}
-                                onClick={() => setSelectedTripId(null)}
-                            >
+                            <li className={!selectedTripId ? 'active' : ''} onClick={() => setSelectedTripId(null)}>
                                 All Active Drivers
                             </li>
                             {trips.map(trip => (
@@ -224,19 +293,205 @@ const LiveTrackingPage = () => {
                         </ul>
                     </div>
                     <div className="info-card driver-list">
-                        <h3>Drivers on Map</h3>
+                        <h3>Drivers on Map ({filteredForList.length})</h3>
                         <ul>
                             {filteredForList.map(loc => (
-                                    <li key={loc.driver_id}>
+                                <li
+                                    key={loc.driver_id}
+                                    className="driver-list-item"
+                                    onClick={() => openDriverDetail(loc.driver_id)}
+                                    title="Click to view details"
+                                >
+                                    <div className="driver-list-header">
                                         <strong>{loc.driver_name || loc.driver_id}</strong>
-                                        <div className="coords-text">{loc.latitude.toFixed(4)}, {loc.longitude.toFixed(4)}</div>
-                                        {loc.trip_id && <div className="trip-tag">Trip: {loc.trip_id}</div>}
-                                    </li>
-                                ))}
+                                        <span className={`activity-dot ${loc.activity_type || 'unknown'}`}>
+                                            {loc.activity_type || 'unknown'}
+                                        </span>
+                                    </div>
+                                    <div className="driver-list-meta">
+                                        <span className="coords-text">{loc.latitude.toFixed(4)}, {loc.longitude.toFixed(4)}</span>
+                                        {loc.speed != null && <span className="speed-tag">{formatSpeed(loc.speed)}</span>}
+                                        {loc.battery_level != null && <span className="battery-tag">🔋 {formatBattery(loc.battery_level)}</span>}
+                                    </div>
+                                    {loc.trip_id && <div className="trip-tag">Trip: {loc.trip_id}</div>}
+                                </li>
+                            ))}
                         </ul>
                     </div>
                 </div>
             </div>
+
+            {/* ─── Driver Detail Side Panel ─────────────────────────── */}
+            <div className={`detail-panel-overlay ${detailPanelOpen ? 'open' : ''}`} onClick={closeDetailPanel} />
+            <div className={`detail-panel ${detailPanelOpen ? 'open' : ''}`}>
+                <button className="detail-panel-close" onClick={closeDetailPanel}>✕</button>
+                {detailLoading && <div className="detail-loading">Loading driver details…</div>}
+                {!detailLoading && dd && (
+                    <>
+                        {/* Driver Info */}
+                        <div className="detail-section driver-hero">
+                            <div className="driver-avatar">{dd.driver?.name?.charAt(0) || '?'}</div>
+                            <h2>{dd.driver?.name}</h2>
+                            <span className={`status-pill ${dd.driver?.current_status?.toLowerCase().replace(/[^a-z]/g, '-')}`}>
+                                {dd.driver?.current_status}
+                            </span>
+                        </div>
+
+                        <div className="detail-section">
+                            <h4>Driver Information</h4>
+                            <div className="detail-grid">
+                                <div className="detail-item">
+                                    <label>ID</label>
+                                    <span>{dd.driver?.driver_id}</span>
+                                </div>
+                                <div className="detail-item">
+                                    <label>Phone</label>
+                                    <span>{dd.driver?.phone || '—'}</span>
+                                </div>
+                                <div className="detail-item">
+                                    <label>License</label>
+                                    <span>{dd.driver?.license_no || '—'}</span>
+                                </div>
+                                <div className="detail-item">
+                                    <label>License Expiry</label>
+                                    <span>{dd.driver?.license_expiry || '—'}</span>
+                                </div>
+                                <div className="detail-item">
+                                    <label>Rating</label>
+                                    <span className="rating">{ratingStars(dd.driver?.rating)}</span>
+                                </div>
+                                <div className="detail-item">
+                                    <label>Home Plant</label>
+                                    <span>{dd.driver?.home_plant_id || '—'}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Live Telemetry */}
+                        {dd.live_location && (
+                            <div className="detail-section">
+                                <h4>Live Telemetry</h4>
+                                <div className="telemetry-grid">
+                                    <div className="telemetry-card speed">
+                                        <span className="telemetry-icon">🚗</span>
+                                        <span className="telemetry-value">{formatSpeed(dd.live_location.speed)}</span>
+                                        <span className="telemetry-label">Speed</span>
+                                    </div>
+                                    <div className="telemetry-card heading-card">
+                                        <span className="telemetry-icon">🧭</span>
+                                        <span className="telemetry-value">{formatHeading(dd.live_location.heading)}</span>
+                                        <span className="telemetry-label">Heading</span>
+                                    </div>
+                                    <div className="telemetry-card altitude">
+                                        <span className="telemetry-icon">⛰️</span>
+                                        <span className="telemetry-value">{dd.live_location.altitude != null ? `${dd.live_location.altitude.toFixed(0)} m` : '—'}</span>
+                                        <span className="telemetry-label">Altitude</span>
+                                    </div>
+                                    <div className="telemetry-card battery-card">
+                                        <span className="telemetry-icon">{dd.live_location.is_charging ? '⚡' : '🔋'}</span>
+                                        <span className="telemetry-value">{formatBattery(dd.live_location.battery_level)}</span>
+                                        <span className="telemetry-label">{dd.live_location.is_charging ? 'Charging' : 'Battery'}</span>
+                                    </div>
+                                    <div className="telemetry-card accuracy-card">
+                                        <span className="telemetry-icon">📡</span>
+                                        <span className="telemetry-value">{dd.live_location.accuracy_h != null ? `±${dd.live_location.accuracy_h.toFixed(0)}m` : '—'}</span>
+                                        <span className="telemetry-label">GPS Accuracy</span>
+                                    </div>
+                                    <div className="telemetry-card network-card">
+                                        <span className="telemetry-icon">{dd.live_location.network_type === 'wifi' ? '📶' : '📱'}</span>
+                                        <span className="telemetry-value">{dd.live_location.network_type || '—'}</span>
+                                        <span className="telemetry-label">Network</span>
+                                    </div>
+                                </div>
+                                <div className="detail-meta-row">
+                                    <span className={`activity-badge ${dd.live_location.activity_type || ''}`}>
+                                        Activity: {dd.live_location.activity_type || '—'}
+                                    </span>
+                                    <span className="updated-badge">
+                                        Updated: {dd.live_location.updated_at ? new Date(dd.live_location.updated_at).toLocaleString() : '—'}
+                                    </span>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Active Trip */}
+                        {dd.active_trip && (
+                            <div className="detail-section">
+                                <h4>Active Trip</h4>
+                                <div className="detail-grid">
+                                    <div className="detail-item">
+                                        <label>Trip ID</label>
+                                        <span>{dd.active_trip.trip_id}</span>
+                                    </div>
+                                    <div className="detail-item">
+                                        <label>Route</label>
+                                        <span>{dd.active_trip.from_loc} ➔ {dd.active_trip.to_loc}</span>
+                                    </div>
+                                    <div className="detail-item">
+                                        <label>Distance</label>
+                                        <span>{dd.active_trip.distance_km} km</span>
+                                    </div>
+                                    <div className="detail-item">
+                                        <label>Cargo</label>
+                                        <span>{dd.active_trip.cargo_weight} kg</span>
+                                    </div>
+                                    <div className="detail-item">
+                                        <label>Started</label>
+                                        <span>{dd.active_trip.start_time ? new Date(dd.active_trip.start_time).toLocaleString() : '—'}</span>
+                                    </div>
+                                    <div className="detail-item">
+                                        <label>Status</label>
+                                        <span className="trip-status-badge">{dd.active_trip.status}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Vehicle */}
+                        {dd.vehicle && (
+                            <div className="detail-section">
+                                <h4>Assigned Vehicle</h4>
+                                <div className="detail-grid">
+                                    <div className="detail-item">
+                                        <label>Vehicle ID</label>
+                                        <span>{dd.vehicle.vehicle_id}</span>
+                                    </div>
+                                    <div className="detail-item">
+                                        <label>Type</label>
+                                        <span>{dd.vehicle.type}</span>
+                                    </div>
+                                    <div className="detail-item">
+                                        <label>License Plate</label>
+                                        <span>{dd.vehicle.license_plate}</span>
+                                    </div>
+                                    <div className="detail-item">
+                                        <label>Capacity</label>
+                                        <span>{dd.vehicle.capacity_kg} kg / {dd.vehicle.volume_cbm} m³</span>
+                                    </div>
+                                    <div className="detail-item">
+                                        <label>Fuel</label>
+                                        <span>{dd.vehicle.fuel_type}</span>
+                                    </div>
+                                    <div className="detail-item">
+                                        <label>Status</label>
+                                        <span>{dd.vehicle.current_status}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {!dd.active_trip && !dd.vehicle && (
+                            <div className="detail-section no-trip-notice">
+                                No active trip or vehicle assigned to this driver.
+                            </div>
+                        )}
+                    </>
+                )}
+                {!detailLoading && !dd && detailPanelOpen && (
+                    <div className="detail-error">Could not load driver details.</div>
+                )}
+            </div>
+
             <Footer />
         </div>
     );

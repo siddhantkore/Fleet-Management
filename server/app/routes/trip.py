@@ -45,6 +45,7 @@ def schedule_trip(
         from_loc=optimized_data["from_id"],
         to_loc=optimized_data["to_id"],
         start_time=request.start_time,
+        end_time=request.end_time,
         distance_km=optimized_data["distance_km"],
         cargo_weight=request.cargo_weight,
         status="Planned",
