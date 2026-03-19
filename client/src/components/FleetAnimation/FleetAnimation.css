@@ -1,0 +1,92 @@
+.fleet-animation-container {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  opacity: 0.4;
+}
+
+.fleet-svg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Network Lines */
+.network-line {
+  stroke: #94a3b8;
+  stroke-width: 0.75;
+  opacity: 0.2;
+  fill: none;
+}
+
+.network-line-pulse {
+  stroke: #3b82f6;
+  stroke-width: 1;
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  animation: line-flow 10s linear infinite;
+  opacity: 0.4;
+}
+
+@keyframes line-flow {
+  0% { stroke-dashoffset: 100; }
+  100% { stroke-dashoffset: -100; }
+}
+
+/* Network Dots */
+.network-dot {
+  fill: #cbd5e1;
+  opacity: 0.5;
+}
+
+.network-dot-pulse {
+  fill: #3b82f6;
+  animation: dot-glow 4s ease-in-out infinite;
+}
+
+@keyframes dot-glow {
+  0%, 100% { transform: scale(1); opacity: 0.3; }
+  50% { transform: scale(2.5); opacity: 0.1; }
+}
+
+/* Subtle Icons */
+.subtle-icon {
+  fill: #94a3b8;
+  opacity: 0.3;
+  transition: opacity 0.5s ease;
+}
+
+.subtle-icon:hover {
+  opacity: 0.6;
+}
+
+.moving-icon {
+  animation: icon-fade 8s ease-in-out infinite;
+}
+
+@keyframes icon-fade {
+  0%, 100% { opacity: 0.1; }
+  50% { opacity: 0.4; }
+}
+
+/* Optimization Particles */
+.particle {
+  fill: #10b981;
+  opacity: 0.4;
+}
+
+.particle-move {
+  animation: particle-fly 15s linear infinite;
+}
+
+@keyframes particle-fly {
+  0% { transform: translate(0, 0); opacity: 0; }
+  10% { opacity: 0.4; }
+  90% { opacity: 0.4; }
+  100% { transform: translate(100px, -50px); opacity: 0; }
+}

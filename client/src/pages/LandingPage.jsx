@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import Navbar from '../components/Navbar/Navbar';
 import Footer from '../components/Footer/Footer';
 import Icons from '../components/Icons/Icons';
+import FleetAnimation from '../components/FleetAnimation/FleetAnimation';
 import './LandingPage.css';
 
 function LandingPage() {
@@ -20,6 +21,7 @@ function LandingPage() {
 
       {/* Hero Section */}
       <section className="hero">
+        <FleetAnimation />
         <div className="hero-content">
           <h1 className="hero-title">Optimize Your Fleet Operations</h1>
           <p className="hero-subtitle">
@@ -28,11 +30,6 @@ function LandingPage() {
           <button onClick={() => token ? navigate('/dashboard') : navigate('/signup')} className="cta-button">
             {token ? 'Explore Dashboard' : 'Get Started'}
           </button>
-        </div>
-        <div className="hero-image">
-          <div className="hero-icon">
-            <Icons.MapPin size={64} color="#1976d2" />
-          </div>
         </div>
       </section>
 

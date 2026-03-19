@@ -85,6 +85,25 @@ class OwnTracksLocation(BaseModel):
         else:
             self.n_tst = self.tst
 
+        # --- Validation / normalisation ---
+        if self.n_lat is None or self.n_lon is None:
+            raise ValueError("latitude and longitude are required")
+        if not (-90 <= self.n_lat <= 90):
+            raise ValueError("latitude must be between -90 and 90")
+        if not (-180 <= self.n_lon <= 180):
+            raise ValueError("longitude must be between -180 and 180")
+        if self.n_speed is not None and self.n_speed < 0:
+            raise ValueError("speed must be a non-negative number")
+        if self.n_battery_level is not None:
+            if self.n_battery_level < 0:
+                raise ValueError("battery_level must be between 0 and 1 (or 0-100)")
+            if self.n_battery_level > 1:
+                # Allow apps sending 0-100 percentages
+                if self.n_battery_level <= 100:
+                    self.n_battery_level = self.n_battery_level / 100
+                else:
+                    raise ValueError("battery_level must be between 0 and 1 (or 0-100)")
+
         return self
 
     class Config:

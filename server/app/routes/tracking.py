@@ -1,10 +1,11 @@
 import asyncio
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -76,6 +77,27 @@ def _build_location_dict(loc, driver_name, active_trip):
     }
 
 
+def _resolve_driver_id(data: OwnTracksLocation) -> str | None:
+    if data.metadata and isinstance(data.metadata, dict):
+        return data.metadata.get("user_id")
+    return None
+
+
+def _apply_live_location_values(live_loc: LiveLocation, data: OwnTracksLocation, tst_dt: datetime):
+    live_loc.latitude = data.n_lat
+    live_loc.longitude = data.n_lon
+    live_loc.altitude = data.n_alt
+    live_loc.speed = data.n_speed
+    live_loc.heading = data.n_heading
+    live_loc.accuracy_h = data.n_accuracy_h
+    live_loc.accuracy_v = data.n_accuracy_v
+    live_loc.battery_level = data.n_battery_level
+    live_loc.is_charging = data.n_is_charging
+    live_loc.network_type = data.n_network_type
+    live_loc.activity_type = data.n_activity_type
+    live_loc.tst = tst_dt
+
+
 @router.post("/owntracks/{driver_id}")
 async def receive_owntracks_data(
     driver_id: str, data: OwnTracksLocation, db: Session = Depends(get_db)
@@ -98,49 +120,50 @@ async def receive_owntracks_data(
 
     # Timestamp: convert ms epoch or s epoch to datetime
     tst_val = data.n_tst
-    if tst_val:
+    if tst_val is not None:
         # If timestamp is in milliseconds (>1e12), convert to seconds
         if tst_val > 1e12:
             tst_val = tst_val / 1000
-        tst_dt = datetime.fromtimestamp(tst_val)
+        tst_dt = datetime.fromtimestamp(tst_val, tz=timezone.utc)
     else:
-        tst_dt = datetime.now()
+        tst_dt = datetime.now(tz=timezone.utc)
 
-    # Update or create live location record
-    live_loc = db.query(LiveLocation).filter(LiveLocation.driver_id == driver_id).first()
-
-    if live_loc:
-        live_loc.latitude = data.n_lat
-        live_loc.longitude = data.n_lon
-        live_loc.altitude = data.n_alt
-        live_loc.speed = data.n_speed
-        live_loc.heading = data.n_heading
-        live_loc.accuracy_h = data.n_accuracy_h
-        live_loc.accuracy_v = data.n_accuracy_v
-        live_loc.battery_level = data.n_battery_level
-        live_loc.is_charging = data.n_is_charging
-        live_loc.network_type = data.n_network_type
-        live_loc.activity_type = data.n_activity_type
-        live_loc.tst = tst_dt
-    else:
-        live_loc = LiveLocation(
-            driver_id=driver_id,
-            latitude=data.n_lat,
-            longitude=data.n_lon,
-            altitude=data.n_alt,
-            speed=data.n_speed,
-            heading=data.n_heading,
-            accuracy_h=data.n_accuracy_h,
-            accuracy_v=data.n_accuracy_v,
-            battery_level=data.n_battery_level,
-            is_charging=data.n_is_charging,
-            network_type=data.n_network_type,
-            activity_type=data.n_activity_type,
-            tst=tst_dt,
+    # Update or create live location record (safe under concurrent updates)
+    try:
+        live_loc = (
+            db.query(LiveLocation).filter(LiveLocation.driver_id == driver_id).first()
         )
-        db.add(live_loc)
+        if live_loc:
+            _apply_live_location_values(live_loc, data, tst_dt)
+        else:
+            live_loc = LiveLocation(
+                driver_id=driver_id,
+                latitude=data.n_lat,
+                longitude=data.n_lon,
+                altitude=data.n_alt,
+                speed=data.n_speed,
+                heading=data.n_heading,
+                accuracy_h=data.n_accuracy_h,
+                accuracy_v=data.n_accuracy_v,
+                battery_level=data.n_battery_level,
+                is_charging=data.n_is_charging,
+                network_type=data.n_network_type,
+                activity_type=data.n_activity_type,
+                tst=tst_dt,
+            )
+            db.add(live_loc)
+        db.commit()
+    except IntegrityError:
+        # If a concurrent insert wins, retry as update for consistency
+        db.rollback()
+        live_loc = (
+            db.query(LiveLocation).filter(LiveLocation.driver_id == driver_id).first()
+        )
+        if not live_loc:
+            raise
+        _apply_live_location_values(live_loc, data, tst_dt)
+        db.commit()
 
-    db.commit()
     db.refresh(live_loc)
 
     # Broadcast update to websocket clients
@@ -151,7 +174,23 @@ async def receive_owntracks_data(
     update_data = _build_location_dict(live_loc, driver.name if driver else "Unknown", active_trip)
     await manager.broadcast(json.dumps(update_data))
 
-    return {"status": "ok"}
+    return {"status": "ok", "driver_id": driver_id}
+
+
+@router.post("/owntracks")
+async def receive_owntracks_data_auto(
+    data: OwnTracksLocation, db: Session = Depends(get_db)
+):
+    """
+    Endpoint for mobile apps that only provide driver_id in the payload metadata.
+    """
+    driver_id = _resolve_driver_id(data)
+    if not driver_id:
+        raise HTTPException(
+            status_code=400,
+            detail="driver_id missing: include in URL or payload metadata.user_id",
+        )
+    return await receive_owntracks_data(driver_id, data, db)
 
 
 @router.get("/locations", response_model=List[dict])

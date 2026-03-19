@@ -161,6 +161,31 @@ curl http://localhost:8000/api/contact/1
 curl -X DELETE http://localhost:8000/api/contact/1
 ```
 
+### Tracking Endpoints
+```bash
+# Post location update (driver id in URL)
+curl -X POST http://localhost:8000/api/v1/tracking/owntracks/D002 \
+  -H "Content-Type: application/json" \
+  -d '{
+    "metadata": { "user_id": "D002" },
+    "timestamp": { "captured_at": 1773250058863 },
+    "location": { "coords": { "lat": 16.9431033, "lng": 74.4147417 } },
+    "context": { "activity_type": "idle", "battery_level": 0.85, "is_charging": false }
+  }'
+
+# Post location update (driver id from payload metadata.user_id)
+curl -X POST http://localhost:8000/api/v1/tracking/owntracks \
+  -H "Content-Type: application/json" \
+  -d '{
+    "metadata": { "user_id": "D002" },
+    "timestamp": { "captured_at": 1773250058863 },
+    "location": { "coords": { "lat": 16.9431033, "lng": 74.4147417 } }
+  }'
+
+# Get latest live locations
+curl http://localhost:8000/api/v1/tracking/locations
+```
+
 ---
 
 ## Database
