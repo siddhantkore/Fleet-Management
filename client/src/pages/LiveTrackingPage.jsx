@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, LayersControl } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, LayersControl, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import api from '../services/api';
 import Navbar from '../components/Navbar/Navbar';
@@ -64,6 +64,26 @@ const ratingStars = (r) => {
 };
 
 // ─── Component ──────────────────────────────────────────────────
+const MapBoundsAdjuster = ({ locations, plants }) => {
+    const map = useMap();
+    useEffect(() => {
+        const bounds = [];
+        plants.forEach(p => {
+            if (p.latitude != null && p.longitude != null) {
+                bounds.push([parseFloat(p.latitude), parseFloat(p.longitude)]);
+            }
+        });
+        Object.values(locations).forEach(l => {
+            if (l.latitude != null && l.longitude != null) {
+                bounds.push([parseFloat(l.latitude), parseFloat(l.longitude)]);
+            }
+        });
+        if (bounds.length > 0) {
+            map.fitBounds(bounds, { padding: [50, 50], maxZoom: 14 });
+        }
+    }, [locations, plants, map]);
+    return null;
+};
 const LiveTrackingPage = () => {
     const [locations, setLocations] = useState({});
     const [plants, setPlants] = useState([]);
@@ -111,7 +131,7 @@ const LiveTrackingPage = () => {
         const fetchPlants = async () => {
             try {
                 const response = await api.get('locations');
-                setPlants(response.data.filter(loc => loc.type === 'Plant'));
+                setPlants(response.data);
             } catch (err) {
                 console.error("Error fetching plants:", err);
             }
@@ -232,12 +252,14 @@ const LiveTrackingPage = () => {
                                 />
                             </LayersControl.BaseLayer>
                         </LayersControl>
+                        
+                        <MapBoundsAdjuster locations={filteredForMap} plants={plants} />
 
                         {/* Plants */}
                         {plants.map((p) => (
                             <Marker key={`plant-${p.location_id}`} position={[p.latitude, p.longitude]} icon={plantIcon}>
                                 <Popup>
-                                    <strong>Plant:</strong> {p.name}<br />
+                                    <strong>Location ({p.type}):</strong> {p.name}<br />
                                     <strong>City:</strong> {p.city}
                                 </Popup>
                             </Marker>
