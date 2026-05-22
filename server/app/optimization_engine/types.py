@@ -13,6 +13,7 @@ class OptimizationRequest:
     to_loc: str
     cargo_weight: float
     cargo_volume_cbm: float = 0.0
+    cargo_type: str = "General"
 
 
 @dataclass(frozen=True)
@@ -22,6 +23,8 @@ class CandidateVehicle:
     recent_maintenance_events: int
     idle_days: float
     recent_trip_count: int
+    cargo_density_score: float = 1.0  # 1.0 = perfectly suitable, 0.0 = unsuitable
+    effective_mileage: float = 8.0  # adjusted mileage based on load
 
 
 @dataclass(frozen=True)

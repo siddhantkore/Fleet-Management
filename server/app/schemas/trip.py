@@ -3,6 +3,20 @@ from typing import Optional
 
 from pydantic import BaseModel
 
+# Predefined cargo categories — users can add more via the UI
+CARGO_CATEGORIES = [
+    "General",
+    "Iron/Steel",
+    "Cotton/Textile",
+    "Electronics",
+    "Chemicals",
+    "Food/Perishable",
+    "Construction Material",
+    "Machinery/Equipment",
+    "Automotive Parts",
+    "Pharmaceuticals",
+]
+
 
 class TripBase(BaseModel):
     """
@@ -18,8 +32,11 @@ class TripBase(BaseModel):
     end_time: Optional[datetime] = None
     distance_km: float
     cargo_weight: Optional[float] = None
+    cargo_volume_cbm: Optional[float] = 0.0
+    cargo_type: Optional[str] = "General"
     status: str
     summary: Optional[str] = None
+    route_data: Optional[str] = None
 
 
 class TripCreate(TripBase):
@@ -41,6 +58,7 @@ class TripScheduleRequest(BaseModel):
     end_time: Optional[datetime] = None
     cargo_weight: float
     cargo_volume_cbm: Optional[float] = 0.0
+    cargo_type: Optional[str] = "General"
     optimize: Optional[bool] = True
 
 

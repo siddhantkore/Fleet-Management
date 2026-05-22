@@ -1,3 +1,4 @@
+import logging
 import uuid
 from datetime import datetime
 from typing import List
@@ -12,7 +13,10 @@ from app.models.trip import Trip
 from app.models.user import User
 from app.models.vehicle import Vehicle
 from app.optimization import optimize_trip
+from app.optimization_engine.fleet_intelligence import evaluate_vehicle_repositioning
 from app.schemas.trip import TripResponse, TripScheduleRequest
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/trips", tags=["trips"])
 
@@ -32,6 +36,7 @@ def schedule_trip(
         request.to_loc,
         request.cargo_weight,
         request.cargo_volume_cbm or 0.0,
+        request.cargo_type or "General",
     )
     if error:
         raise HTTPException(status_code=400, detail=error)
@@ -48,8 +53,11 @@ def schedule_trip(
         end_time=request.end_time,
         distance_km=optimized_data["distance_km"],
         cargo_weight=request.cargo_weight,
+        cargo_volume_cbm=request.cargo_volume_cbm or 0.0,
+        cargo_type=request.cargo_type or "General",
         status="Planned",
         summary=optimized_data["summary"],
+        route_data=optimized_data.get("route_data"),
     )
 
     # Update vehicle and driver status
@@ -140,8 +148,30 @@ def complete_trip(
         # Update vehicle location to the trip destination
         vehicle.plant_loc_id = trip.to_loc
 
+        # Update odometer based on trip distance
+        if vehicle.odometer_km is not None and trip.distance_km:
+            vehicle.odometer_km += int(trip.distance_km)
+
     if driver:
         driver.current_status = "Available"
 
     db.commit()
+
+    # Trigger fleet intelligence: evaluate repositioning for the vehicle
+    if vehicle:
+        try:
+            recommendation = evaluate_vehicle_repositioning(
+                db,
+                vehicle=vehicle,
+                current_location_id=trip.to_loc,
+                source_location_id=trip.from_loc,
+            )
+            if recommendation:
+                logger.info(
+                    f"Fleet intelligence recommendation generated: "
+                    f"{recommendation.action} for {vehicle.vehicle_id}"
+                )
+        except Exception as exc:
+            logger.error(f"Fleet intelligence evaluation failed: {exc}")
+
     return {"message": "Trip completed", "trip_id": trip_id}

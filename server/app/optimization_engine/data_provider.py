@@ -124,6 +124,7 @@ def eligible_vehicles(
     start: LocationPoint,
     cargo_weight: float,
     cargo_volume_cbm: float,
+    cargo_type: str = "General",
 ) -> list[CandidateVehicle]:
     """Return available vehicles meeting capacity constraints plus utilization metrics."""
     vehicles = (
@@ -168,6 +169,15 @@ def eligible_vehicles(
         last_end = last_trip_end.get(vehicle.vehicle_id)
         idle_days = 365.0 if last_end is None else max(0.0, (now - last_end).total_seconds() / 86400)
 
+        # Cargo type suitability scoring
+        cargo_density_score = _compute_cargo_suitability(vehicle, cargo_type, cargo_weight, cargo_volume_cbm)
+
+        # Effective mileage considering load factor
+        base_mileage = vehicle.mileage_kmpl or 8.0
+        load_factor = cargo_weight / max(vehicle.capacity_kg, 1.0)
+        effective_mileage = base_mileage * (1.0 - 0.3 * load_factor)
+        effective_mileage = max(effective_mileage, 2.0)
+
         candidates.append(
             CandidateVehicle(
                 vehicle=vehicle,
@@ -175,10 +185,60 @@ def eligible_vehicles(
                 recent_maintenance_events=maintenance_count.get(vehicle.vehicle_id, 0),
                 idle_days=idle_days,
                 recent_trip_count=recent_trip_count.get(vehicle.vehicle_id, 0),
+                cargo_density_score=cargo_density_score,
+                effective_mileage=effective_mileage,
             )
         )
 
     return candidates
+
+
+def _compute_cargo_suitability(
+    vehicle: Vehicle,
+    cargo_type: str,
+    cargo_weight: float,
+    cargo_volume_cbm: float,
+) -> float:
+    """
+    Compute a suitability score (0.0 to 1.0) for a vehicle carrying a given cargo type.
+
+    Considers:
+    - Whether the vehicle is marked suitable for this cargo type
+    - Density compatibility (cargo density vs vehicle max density)
+    - Capacity utilization efficiency (prefer right-sized vehicles)
+    """
+    score = 1.0
+
+    # Check if vehicle supports the cargo type
+    suitable_types = (vehicle.suitable_cargo_types or "General").split(",")
+    suitable_types = [t.strip().lower() for t in suitable_types]
+
+    if "general" in suitable_types:
+        # General-purpose vehicle gets a small penalty for specialized cargo
+        if cargo_type.lower() not in suitable_types and cargo_type.lower() != "general":
+            score *= 0.7
+    elif cargo_type.lower() in suitable_types:
+        score *= 1.0  # Perfect match
+    else:
+        score *= 0.3  # Poor match
+
+    # Density check: if cargo volume is provided, compute density
+    if cargo_volume_cbm and cargo_volume_cbm > 0:
+        cargo_density = cargo_weight / cargo_volume_cbm
+        max_density = vehicle.max_density_kg_cbm
+        if max_density and cargo_density > max_density:
+            score *= 0.4  # Density exceeds vehicle capability
+
+    # Capacity efficiency: prefer vehicles that are well-utilized (not vastly oversized)
+    utilization = cargo_weight / max(vehicle.capacity_kg, 1.0)
+    if utilization < 0.1:
+        score *= 0.6  # Vehicle is way too large for this cargo
+    elif utilization < 0.3:
+        score *= 0.8
+    elif utilization > 0.95:
+        score *= 0.9  # Slightly penalize near-max loads
+
+    return round(score, 3)
 
 
 def eligible_drivers(db: Session, start: LocationPoint) -> list[CandidateDriver]:

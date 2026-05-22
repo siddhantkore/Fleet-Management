@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Float, ForeignKey, String
+from sqlalchemy import Column, Float, ForeignKey, Integer, String
 
 from app.database import Base
 
@@ -19,6 +19,16 @@ class Vehicle(Base):
     cost_per_km = Column(Float, nullable=False)
     current_status = Column(String(20), default="Available")
     license_plate = Column(String(20), unique=True, nullable=False)
+
+    # Fuel efficiency and mileage tracking
+    mileage_kmpl = Column(Float, nullable=True, default=8.0)  # km per litre
+    odometer_km = Column(Integer, nullable=True, default=0)  # current odometer reading
+
+    # Cargo density and suitability
+    max_density_kg_cbm = Column(Float, nullable=True)  # max cargo density (kg/m³)
+    suitable_cargo_types = Column(
+        String(500), nullable=True, default="General"
+    )  # comma-separated: "Iron/Steel,Chemicals,General"
 
     def __repr__(self):
         """

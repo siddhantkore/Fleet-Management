@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from datetime import datetime
 
 from sqlalchemy.orm import Session
@@ -10,6 +11,11 @@ from app.optimization_engine.data_provider import (
     eligible_vehicles,
     get_or_create_location_point,
     planned_demand_by_origin,
+)
+from app.optimization_engine.route_optimizer import (
+    RouteOptimizationResult,
+    optimize_routes,
+    routes_to_json,
 )
 from app.optimization_engine.route_provider import estimate_route
 from app.optimization_engine.solver import (
@@ -94,39 +100,58 @@ def _build_summary(
     to_id: str,
     cargo_weight: float,
     cargo_volume_cbm: float,
+    cargo_type: str,
     route_distance_km: float,
     route_mode: str,
     estimated_cost: float,
     selected_vehicle,
     selected_driver,
     continuation: ContinuationRecommendation,
+    route_result: RouteOptimizationResult | None = None,
 ) -> str:
-    return (
-        "**Trip Optimization Report (OR-Tools)**\n\n"
-        f"Trip request: {from_id} -> {to_id}\n"
-        f"Cargo: {cargo_weight:.2f} kg"
-        f" | {cargo_volume_cbm:.2f} cbm\n\n"
+    lines = [
+        "**Trip Optimization Report (OR-Tools)**\n",
+        f"Trip request: {from_id} -> {to_id}",
+        f"Cargo: {cargo_weight:.2f} kg | {cargo_volume_cbm:.2f} cbm | Type: {cargo_type}\n",
         f"Selected vehicle: {selected_vehicle.vehicle.vehicle_id}"
-        f" ({selected_vehicle.vehicle.license_plate})\n"
+        f" ({selected_vehicle.vehicle.license_plate})",
+        f"- Type: {selected_vehicle.vehicle.type}",
         f"- Capacity: {selected_vehicle.vehicle.capacity_kg:.2f} kg"
-        f" | {selected_vehicle.vehicle.volume_cbm:.2f} cbm\n"
-        f"- Maintenance events (180d): {selected_vehicle.recent_maintenance_events}\n"
-        f"- Idle days: {selected_vehicle.idle_days:.1f}\n"
-        f"- Reposition to source: {selected_vehicle.reposition_distance_km:.2f} km\n\n"
-        f"Selected driver: {selected_driver.driver.driver_id} ({selected_driver.driver.name})\n"
-        f"- License valid until: {selected_driver.driver.license_expiry}\n"
-        f"- Recent trips (90d): {selected_driver.recent_trip_count}\n"
-        f"- Reposition to source: {selected_driver.reposition_distance_km:.2f} km\n\n"
-        "Route plan:\n"
-        f"- Primary route mode: {route_mode}\n"
-        f"- Distance: {route_distance_km:.2f} km\n"
-        f"- Estimated operational cost: ${estimated_cost:.2f}\n\n"
-        "Continuation recommendation after delivery:\n"
-        f"- Next move: {to_id} -> {continuation.destination_id}\n"
+        f" | {selected_vehicle.vehicle.volume_cbm:.2f} cbm",
+        f"- Fuel: {selected_vehicle.vehicle.fuel_type}"
+        f" | Mileage: {selected_vehicle.effective_mileage:.1f} km/L (loaded)",
+        f"- Cargo suitability: {selected_vehicle.cargo_density_score:.0%}",
+        f"- Maintenance events (180d): {selected_vehicle.recent_maintenance_events}",
+        f"- Idle days: {selected_vehicle.idle_days:.1f}",
+        f"- Reposition to source: {selected_vehicle.reposition_distance_km:.2f} km\n",
+        f"Selected driver: {selected_driver.driver.driver_id} ({selected_driver.driver.name})",
+        f"- License valid until: {selected_driver.driver.license_expiry}",
+        f"- Recent trips (90d): {selected_driver.recent_trip_count}",
+        f"- Reposition to source: {selected_driver.reposition_distance_km:.2f} km\n",
+        "Route plan:",
+        f"- Primary route mode: {route_mode}",
+        f"- Distance: {route_distance_km:.2f} km",
+        f"- Estimated operational cost: ${estimated_cost:.2f}",
+    ]
+
+    if route_result and len(route_result.routes) > 1:
+        lines.append(f"- Routes analyzed: {len(route_result.routes)}")
+        for r in route_result.routes:
+            marker = "✅ SELECTED" if r.is_selected else "⬜ Alternative"
+            lines.append(
+                f"  [{marker}] Route {r.index + 1}: {r.distance_km} km, "
+                f"{r.duration_minutes:.0f} min, score={r.score}"
+            )
+
+    lines.extend([
+        "\nContinuation recommendation after delivery:",
+        f"- Next move: {to_id} -> {continuation.destination_id}",
         f"- Distance: {continuation.distance_km:.2f} km"
-        f" | Cost: ${continuation.estimated_cost:.2f}\n"
-        f"- Reason: {continuation.reason}"
-    )
+        f" | Cost: ${continuation.estimated_cost:.2f}",
+        f"- Reason: {continuation.reason}",
+    ])
+
+    return "\n".join(lines)
 
 
 def optimize_trip(
@@ -135,6 +160,7 @@ def optimize_trip(
     to_loc: str,
     cargo_weight: float,
     cargo_volume_cbm: float = 0.0,
+    cargo_type: str = "General",
 ):
     """Optimize dispatch selection using a decoupled OR-Tools assignment module."""
     if cargo_weight <= 0:
@@ -147,7 +173,7 @@ def optimize_trip(
     if not start or not destination:
         return None, "Invalid source or destination coordinates/location ID."
 
-    vehicles = eligible_vehicles(db, start, cargo_weight, cargo_volume_cbm)
+    vehicles = eligible_vehicles(db, start, cargo_weight, cargo_volume_cbm, cargo_type)
     if not vehicles:
         return None, "No available vehicles meet weight/volume constraints."
 
@@ -155,8 +181,23 @@ def optimize_trip(
     if not drivers:
         return None, "No eligible drivers are currently available with valid license/data."
 
-    route_estimate = estimate_route(start, destination)
-    route_distance_km = route_estimate.distance_km
+    # Get route alternatives with geometry
+    route_result = optimize_routes(
+        start,
+        destination,
+        vehicle_mileage_kmpl=vehicles[0].effective_mileage if vehicles else 8.0,
+        cargo_weight_kg=cargo_weight,
+        vehicle_capacity_kg=vehicles[0].vehicle.capacity_kg if vehicles else 10000.0,
+        max_alternatives=4,
+    )
+
+    # Use the selected route distance for assignment optimization
+    if route_result.routes:
+        selected_route = route_result.routes[route_result.selected_index]
+        route_distance_km = selected_route.distance_km
+    else:
+        route_estimate = estimate_route(start, destination)
+        route_distance_km = route_estimate.distance_km
 
     try:
         decision = solve_best_assignment(
@@ -191,13 +232,18 @@ def optimize_trip(
         to_id=destination.location_id,
         cargo_weight=cargo_weight,
         cargo_volume_cbm=cargo_volume_cbm,
+        cargo_type=cargo_type,
         route_distance_km=route_distance_km,
-        route_mode=route_estimate.mode,
+        route_mode=route_result.mode,
         estimated_cost=estimated_cost,
         selected_vehicle=selected_vehicle,
         selected_driver=selected_driver,
         continuation=continuation,
+        route_result=route_result,
     )
+
+    # Serialize route data for storage and frontend
+    route_data_json = routes_to_json(route_result) if route_result.routes else None
 
     return {
         "vehicle_id": selected_vehicle.vehicle.vehicle_id,
@@ -206,8 +252,10 @@ def optimize_trip(
         "summary": summary,
         "from_id": start.location_id,
         "to_id": destination.location_id,
+        "cargo_type": cargo_type,
         "continuation_destination_id": continuation.destination_id,
         "continuation_distance_km": continuation.distance_km,
         "continuation_estimated_cost": continuation.estimated_cost,
+        "route_data": route_data_json,
         "generated_at": datetime.utcnow().isoformat(),
     }, None

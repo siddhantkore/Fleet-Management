@@ -237,3 +237,109 @@
     font-weight: bold;
     font-size: 1.2rem;
 }
+
+/* Map legend */
+.map-legend {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 8px;
+    font-size: 0.8rem;
+    color: #555;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.legend-line {
+    display: inline-block;
+    width: 24px;
+    height: 3px;
+    border-radius: 2px;
+}
+
+.legend-line.green {
+    background: #22c55e;
+}
+
+.legend-line.red {
+    background: #ef4444;
+}
+
+/* Route comparison */
+.result-details-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+@media (max-width: 800px) {
+    .result-details-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.result-card {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 16px;
+}
+
+.result-card h4 {
+    margin: 0 0 12px 0;
+    font-size: 0.95rem;
+    color: #1e293b;
+}
+
+.result-card p {
+    margin: 4px 0;
+    font-size: 0.85rem;
+}
+
+.routes-card .route-compare-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    margin-bottom: 4px;
+    background: #fafafa;
+    border: 1px solid #eee;
+}
+
+.route-compare-item.selected {
+    background: #f0fdf4;
+    border-color: #22c55e;
+}
+
+.route-marker {
+    font-size: 1rem;
+}
+
+.route-score {
+    margin-left: auto;
+    color: #64748b;
+    font-size: 0.8rem;
+}
+
+/* Cargo display in table */
+.cargo-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.cargo-type-badge {
+    display: inline-block;
+    background: #e0f2fe;
+    color: #0369a1;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 0.7rem;
+    font-weight: 600;
+}

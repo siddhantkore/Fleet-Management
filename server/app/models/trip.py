@@ -19,8 +19,11 @@ class Trip(Base):
     end_time = Column(DateTime, nullable=True)
     distance_km = Column(Float, nullable=False)
     cargo_weight = Column(Float, nullable=True)
+    cargo_volume_cbm = Column(Float, nullable=True, default=0.0)
+    cargo_type = Column(String(100), nullable=True, default="General")
     status = Column(String(20), default="Planned")  # Planned, In-Transit, Completed, Cancelled
     summary = Column(Text, nullable=True)  # LLM generated summary for selection
+    route_data = Column(Text, nullable=True)  # JSON string of route geometry for map display
 
     def __repr__(self):
         """

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Polyline, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import api from '../services/api';
 import './TripManagement.css';
@@ -24,7 +24,13 @@ const customIcon = new L.Icon({
     shadowSize: [41, 41]
 });
 
-const SelectionMap = ({ plants, onPointSelect, selectedFrom, selectedTo }) => {
+const DEFAULT_CARGO_CATEGORIES = [
+    'General', 'Iron/Steel', 'Cotton/Textile', 'Electronics',
+    'Chemicals', 'Food/Perishable', 'Construction Material',
+    'Machinery/Equipment', 'Automotive Parts', 'Pharmaceuticals'
+];
+
+const SelectionMap = ({ plants, onPointSelect, selectedFrom, selectedTo, routes }) => {
     useMapEvents({
         click(e) {
             onPointSelect(e.latlng);
@@ -59,6 +65,32 @@ const SelectionMap = ({ plants, onPointSelect, selectedFrom, selectedTo }) => {
                     <Popup>End Point</Popup>
                 </Marker>
             )}
+            {/* Route polylines: red for alternatives, green for selected */}
+            {routes && routes.map((route, idx) => {
+                const coords = route.geometry_coords?.map(c => [c[1], c[0]]) || [];
+                if (coords.length < 2) return null;
+                return (
+                    <Polyline
+                        key={`route-${idx}`}
+                        positions={coords}
+                        pathOptions={{
+                            color: route.is_selected ? '#22c55e' : '#ef4444',
+                            weight: route.is_selected ? 5 : 3,
+                            opacity: route.is_selected ? 0.9 : 0.5,
+                            dashArray: route.is_selected ? null : '10 6',
+                        }}
+                    >
+                        <Popup>
+                            <div>
+                                <strong>{route.is_selected ? '✅ Selected Route' : `⬜ Alternative ${route.index + 1}`}</strong><br />
+                                Distance: {route.distance_km} km<br />
+                                Duration: {route.duration_minutes?.toFixed(0)} min<br />
+                                Score: {route.score}
+                            </div>
+                        </Popup>
+                    </Polyline>
+                );
+            })}
         </>
     );
 };
@@ -68,26 +100,30 @@ const TripManagement = () => {
     const [plants, setPlants] = useState([]);
     const [showForm, setShowForm] = useState(false);
     const [loading, setLoading] = useState(false);
-    const [selectionMode, setSelectionMode] = useState(null); // 'from' or 'to'
+    const [selectionMode, setSelectionMode] = useState(null);
+    const [cargoCategories, setCargoCategories] = useState(DEFAULT_CARGO_CATEGORIES);
     const [formData, setFormData] = useState({
         from_loc: '',
         to_loc: '',
         start_time: '',
         end_time: '',
         cargo_weight: 0,
+        cargo_volume_cbm: 0,
+        cargo_type: 'General',
         optimize: true
     });
     const [optimizationResult, setOptimizationResult] = useState(null);
+    const [routeData, setRouteData] = useState(null);
 
     useEffect(() => {
         fetchTrips();
         fetchPlants();
+        fetchCargoCategories();
     }, []);
 
     const fetchTrips = async () => {
         try {
             const response = await api.get('/trips');
-            // Sort trips: In-Transit, then Planned, then others
             const sortedTrips = response.data.sort((a, b) => {
                 const statusOrder = { 'In-Transit': 0, 'Planned': 1, 'Completed': 2, 'Cancelled': 3 };
                 return (statusOrder[a.status] ?? 99) - (statusOrder[b.status] ?? 99);
@@ -95,6 +131,17 @@ const TripManagement = () => {
             setTrips(sortedTrips);
         } catch (error) {
             console.error('Error fetching trips:', error);
+        }
+    };
+
+    const fetchCargoCategories = async () => {
+        try {
+            const response = await api.get('/analysis/cargo-categories');
+            if (response.data.categories) {
+                setCargoCategories(response.data.categories);
+            }
+        } catch {
+            // Use defaults
         }
     };
 
@@ -144,29 +191,26 @@ const TripManagement = () => {
         e.preventDefault();
         setLoading(true);
         setOptimizationResult(null);
+        setRouteData(null);
         try {
             const payload = {
                 ...formData,
                 start_time: new Date(formData.start_time).toISOString(),
                 end_time: formData.end_time ? new Date(formData.end_time).toISOString() : null,
-                cargo_weight: parseFloat(formData.cargo_weight)
+                cargo_weight: parseFloat(formData.cargo_weight),
+                cargo_volume_cbm: parseFloat(formData.cargo_volume_cbm) || 0,
             };
             const response = await api.post('/trips/schedule', payload);
             setOptimizationResult(response.data);
+
+            // Parse route data for map display
+            if (response.data.route_data) {
+                try {
+                    const parsed = JSON.parse(response.data.route_data);
+                    setRouteData(parsed);
+                } catch { /* ignore parse errors */ }
+            }
             fetchTrips();
-            // Reset form after delay
-            setTimeout(() => {
-                setShowForm(false);
-                setOptimizationResult(null);
-                setFormData({
-                    from_loc: '',
-                    to_loc: '',
-                    start_time: '',
-                    end_time: '',
-                    cargo_weight: 0,
-                    optimize: true
-                });
-            }, 8000);
         } catch (error) {
             console.error('Error scheduling trip:', error);
             alert(error.response?.data?.detail || 'Failed to schedule trip');
@@ -201,7 +245,7 @@ const TripManagement = () => {
             <div className="header-actions">
                 <button
                     className="add-btn"
-                    onClick={() => setShowForm(!showForm)}
+                    onClick={() => { setShowForm(!showForm); setOptimizationResult(null); setRouteData(null); }}
                 >
                     {showForm ? 'Cancel' : 'Schedule New Trip'}
                 </button>
@@ -288,6 +332,20 @@ const TripManagement = () => {
                             </div>
                             <div className="form-row">
                                 <div className="form-group">
+                                    <label>Cargo Type</label>
+                                    <select
+                                        name="cargo_type"
+                                        value={formData.cargo_type}
+                                        onChange={handleInputChange}
+                                    >
+                                        {cargoCategories.map(cat => (
+                                            <option key={cat} value={cat}>{cat}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+                            <div className="form-row">
+                                <div className="form-group">
                                     <label>Weight (kg)</label>
                                     <input
                                         type="number"
@@ -295,6 +353,16 @@ const TripManagement = () => {
                                         value={formData.cargo_weight}
                                         onChange={handleInputChange}
                                         required
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label>Volume (m³)</label>
+                                    <input
+                                        type="number"
+                                        name="cargo_volume_cbm"
+                                        value={formData.cargo_volume_cbm}
+                                        onChange={handleInputChange}
+                                        step="0.1"
                                     />
                                 </div>
                             </div>
@@ -308,12 +376,17 @@ const TripManagement = () => {
                             <p className="map-hint">
                                 {selectionMode ? `Select ${selectionMode} location on map` : 'Click icon 📍 to select from map'}
                             </p>
-                            <MapContainer center={[19.0760, 72.8777]} zoom={5} style={{ height: '300px', width: '100%' }}>
+                            <div className="map-legend">
+                                <span className="legend-item"><span className="legend-line green"></span> Selected Route</span>
+                                <span className="legend-item"><span className="legend-line red"></span> Alternative Routes</span>
+                            </div>
+                            <MapContainer center={[19.0760, 72.8777]} zoom={5} style={{ height: '350px', width: '100%' }}>
                                 <SelectionMap
                                     plants={plants}
                                     onPointSelect={handlePointSelect}
                                     selectedFrom={parseCoords(formData.from_loc)}
                                     selectedTo={parseCoords(formData.to_loc)}
+                                    routes={routeData?.routes || []}
                                 />
                             </MapContainer>
                         </div>
@@ -322,14 +395,36 @@ const TripManagement = () => {
                     {optimizationResult && (
                         <div className="optimization-result">
                             <div className="success-banner">Trip Scheduled Successfully!</div>
+                            <div className="result-details-grid">
+                                <div className="result-card">
+                                    <h4>Trip Details</h4>
+                                    <p><strong>Trip ID:</strong> {optimizationResult.trip_id}</p>
+                                    <p><strong>Vehicle:</strong> {optimizationResult.vehicle_id}</p>
+                                    <p><strong>Driver:</strong> {optimizationResult.driver_id}</p>
+                                    <p><strong>Distance:</strong> {optimizationResult.distance_km} km</p>
+                                    {optimizationResult.cargo_type && (
+                                        <p><strong>Cargo:</strong> {optimizationResult.cargo_type}</p>
+                                    )}
+                                </div>
+
+                                {routeData && routeData.routes && routeData.routes.length > 1 && (
+                                    <div className="result-card routes-card">
+                                        <h4>Route Comparison ({routeData.routes.length} routes analyzed)</h4>
+                                        {routeData.routes.map((r, idx) => (
+                                            <div key={idx} className={`route-compare-item ${r.is_selected ? 'selected' : ''}`}>
+                                                <span className="route-marker">{r.is_selected ? '✅' : '⬜'}</span>
+                                                <span>Route {r.index + 1}</span>
+                                                <span>{r.distance_km} km</span>
+                                                <span>{r.duration_minutes?.toFixed(0)} min</span>
+                                                <span className="route-score">Score: {r.score}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
                             <h4>Optimization Summary</h4>
                             <pre className="summary-text">{optimizationResult.summary}</pre>
-                            <div className="result-details">
-                                <p><strong>Trip ID:</strong> {optimizationResult.trip_id}</p>
-                                <p><strong>Vehicle:</strong> {optimizationResult.vehicle_id}</p>
-                                <p><strong>Driver:</strong> {optimizationResult.driver_id}</p>
-                                <p><strong>Distance:</strong> {optimizationResult.distance_km} km</p>
-                            </div>
                         </div>
                     )}
                 </div>
@@ -345,6 +440,7 @@ const TripManagement = () => {
                             <th>Driver</th>
                             <th>From</th>
                             <th>To</th>
+                            <th>Cargo</th>
                             <th>Status</th>
                             <th>Actions</th>
                         </tr>
@@ -362,6 +458,14 @@ const TripManagement = () => {
                                 <td>{trip.driver_id}</td>
                                 <td>{trip.from_loc}</td>
                                 <td>{trip.to_loc}</td>
+                                <td>
+                                    <div className="cargo-cell">
+                                        <span>{trip.cargo_weight} kg</span>
+                                        {trip.cargo_type && trip.cargo_type !== 'General' && (
+                                            <span className="cargo-type-badge">{trip.cargo_type}</span>
+                                        )}
+                                    </div>
+                                </td>
                                 <td>
                                     <span
                                         className="status-badge"
@@ -396,7 +500,7 @@ const TripManagement = () => {
                             </tr>
                         )) : (
                             <tr>
-                                <td colSpan="7" className="no-data">No trips found.</td>
+                                <td colSpan="8" className="no-data">No trips found.</td>
                             </tr>
                         )}
                     </tbody>

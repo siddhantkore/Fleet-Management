@@ -1,5 +1,6 @@
 from app.models.contact import ContactSubmission
 from app.models.driver import Driver
+from app.models.fleet_recommendation import FleetRecommendation
 from app.models.location import Location
 from app.models.maintenance import Maintenance
 from app.models.tracking import LiveLocation

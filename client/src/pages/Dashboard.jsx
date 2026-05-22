@@ -1,16 +1,33 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Icons from '../components/Icons/Icons';
 import DriverManagement from './DriverManagement';
 import PlantManagement from './PlantManagement';
 import TripManagement from './TripManagement';
+import RouteAnalysis from './RouteAnalysis';
+import FleetIntelligence from './FleetIntelligence';
+import api from '../services/api';
 import './Dashboard.css';
 
 const Dashboard = () => {
     const { logout, user } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
+    const [recCount, setRecCount] = useState(0);
+
+    useEffect(() => {
+        // Fetch recommendation count for badge
+        const fetchCount = async () => {
+            try {
+                const res = await api.get('/fleet/recommendations/count');
+                setRecCount(res.data.count || 0);
+            } catch { /* ignore */ }
+        };
+        fetchCount();
+        const interval = setInterval(fetchCount, 30000); // Refresh every 30s
+        return () => clearInterval(interval);
+    }, []);
 
     const handleLogout = () => {
         logout();
@@ -21,6 +38,13 @@ const Dashboard = () => {
         { path: '/dashboard/plants', label: 'Plants', icon: () => <Icons.Building size={20} color="#1976d2" /> },
         { path: '/dashboard/drivers', label: 'Drivers', icon: () => <Icons.User size={20} color="#1976d2" /> },
         { path: '/dashboard/trips', label: 'Trips', icon: () => <Icons.Truck size={20} color="#1976d2" /> },
+        { path: '/dashboard/routes', label: 'Route Analysis', icon: () => <Icons.MapPin size={20} color="#1976d2" /> },
+        {
+            path: '/dashboard/fleet-intelligence',
+            label: 'Fleet Intelligence',
+            icon: () => <Icons.Truck size={20} color="#1976d2" />,
+            badge: recCount > 0 ? recCount : null,
+        },
         { path: '/tracking', label: 'Live Tracking', icon: () => <Icons.MapPin size={20} color="#1976d2" /> },
     ];
 
@@ -40,6 +64,7 @@ const Dashboard = () => {
                         >
                             <span className="nav-icon">{item.icon()}</span>
                             {item.label}
+                            {item.badge && <span className="nav-badge">{item.badge}</span>}
                         </Link>
                     ))}
                 </nav>
@@ -60,9 +85,18 @@ const Dashboard = () => {
                         <Route path="plants" element={<PlantManagement />} />
                         <Route path="drivers" element={<DriverManagement />} />
                         <Route path="trips" element={<TripManagement />} />
+                        <Route path="routes" element={<RouteAnalysis />} />
+                        <Route path="fleet-intelligence" element={<FleetIntelligence />} />
                         <Route path="/" element={<div className="welcome-screen">
                             <h1>Welcome back, Admin</h1>
                             <p>Select a category from the sidebar to manage your fleet assets.</p>
+                            {recCount > 0 && (
+                                <div className="welcome-notification">
+                                    <span className="notification-icon">🚛</span>
+                                    <span>{recCount} pending fleet repositioning recommendation{recCount > 1 ? 's' : ''}</span>
+                                    <Link to="/dashboard/fleet-intelligence" className="notification-link">View →</Link>
+                                </div>
+                            )}
                         </div>} />
                     </Routes>
                 </div>

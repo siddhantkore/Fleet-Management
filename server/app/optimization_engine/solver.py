@@ -52,7 +52,8 @@ def solve_best_assignment(data: AssignmentInput) -> AssignmentResult:
     Use OR-Tools CP-SAT to select one feasible driver + vehicle pair.
 
     The objective combines transport cost, repositioning effort, maintenance pressure,
-    and balancing terms (prefer vehicles idle for longer and reduce overused resources).
+    balancing terms (prefer vehicles idle for longer and reduce overused resources),
+    fuel efficiency, and cargo type suitability.
     """
     if not data.vehicles:
         raise ValueError("No eligible vehicles to optimize")
@@ -96,12 +97,22 @@ def solve_best_assignment(data: AssignmentInput) -> AssignmentResult:
         if driver.driver.home_plant_id == data.start_location_id:
             same_start_plant_bonus += 5.0
 
+        # Fuel efficiency factor: penalize gas-guzzlers on long routes
+        fuel_consumption = data.route_distance_km / max(vehicle.effective_mileage, 2.0)
+        fuel_cost_penalty = fuel_consumption * 3.0  # weight factor for fuel cost
+
+        # Cargo suitability: penalize unsuitable vehicles
+        # Score is 0.0-1.0, invert to get penalty (higher is worse)
+        cargo_unsuitability_penalty = (1.0 - vehicle.cargo_density_score) * 25.0
+
         pair_cost = (
             base_transport_cost
             + driver_reposition_cost
             + maintenance_penalty
             + vehicle_recent_usage_penalty
             + driver_recent_usage_penalty
+            + fuel_cost_penalty
+            + cargo_unsuitability_penalty
             - idle_bonus
             - driver_rating_bonus
             - same_start_plant_bonus

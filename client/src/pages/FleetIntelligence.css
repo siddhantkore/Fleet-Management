@@ -1,0 +1,222 @@
+.fleet-intelligence {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.fi-header {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+.fi-header h2 { margin: 0 0 4px; color: #1e293b; }
+.fi-subtitle { margin: 0 0 16px; color: #64748b; font-size: 0.9rem; }
+
+.fi-filters {
+    display: flex;
+    gap: 8px;
+}
+
+.fi-filter-btn {
+    padding: 6px 16px;
+    border: 1px solid #e2e8f0;
+    border-radius: 20px;
+    background: white;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.fi-filter-btn.active {
+    background: #1e293b;
+    color: white;
+    border-color: #1e293b;
+}
+
+.fi-badge {
+    background: #ef4444;
+    color: white;
+    padding: 1px 7px;
+    border-radius: 10px;
+    font-size: 0.7rem;
+    font-weight: 700;
+}
+
+.fi-content {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+@media (max-width: 1000px) {
+    .fi-content { grid-template-columns: 1fr; }
+}
+
+.fi-map-panel {
+    background: white;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+.fi-recs-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-height: 600px;
+    overflow-y: auto;
+}
+
+.fi-loading, .fi-empty {
+    text-align: center;
+    padding: 40px;
+    color: #64748b;
+}
+
+.fi-empty-icon { font-size: 2rem; display: block; margin-bottom: 8px; }
+
+.fi-recs-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.fi-rec-card {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+    transition: border-color 0.2s;
+}
+
+.fi-rec-card:hover { border-color: #94a3b8; }
+.fi-rec-card.expanded { border-color: #3b82f6; }
+
+.fi-rec-header {
+    padding: 14px 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.fi-rec-icon { font-size: 1.3rem; }
+
+.fi-rec-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+}
+
+.fi-action-tag {
+    color: white;
+    padding: 2px 10px;
+    border-radius: 10px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.fi-rec-route {
+    font-size: 0.85rem;
+    color: #475569;
+}
+
+.fi-rec-meta {
+    font-size: 0.8rem;
+    color: #94a3b8;
+    margin-left: auto;
+}
+
+.fi-rec-details {
+    padding: 0 16px 16px;
+    border-top: 1px solid #f1f5f9;
+}
+
+.fi-detail-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin: 12px 0;
+}
+
+.fi-detail-item {
+    display: flex;
+    flex-direction: column;
+}
+
+.fi-detail-label {
+    font-size: 0.72rem;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.fi-detail-value {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.fi-reason {
+    background: #f8fafc;
+    padding: 10px 14px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    color: #475569;
+    margin-bottom: 12px;
+    line-height: 1.5;
+}
+
+.fi-ai-summary {
+    background: #faf5ff;
+    border: 1px solid #e9d5ff;
+    border-radius: 8px;
+    padding: 14px;
+    margin-bottom: 12px;
+}
+
+.fi-ai-summary h4 {
+    margin: 0 0 8px;
+    color: #7c3aed;
+    font-size: 0.9rem;
+}
+
+.fi-ai-summary pre {
+    white-space: pre-wrap;
+    font-size: 0.83rem;
+    color: #374151;
+    margin: 0;
+    line-height: 1.5;
+}
+
+.fi-rec-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.fi-btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.fi-btn:hover { opacity: 0.9; }
+.fi-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.fi-btn.accept { background: #22c55e; color: white; }
+.fi-btn.dismiss { background: #ef4444; color: white; }
+.fi-btn.ai { background: linear-gradient(135deg, #8b5cf6, #6366f1); color: white; }

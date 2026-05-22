@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import API_TITLE, API_DESCRIPTION, API_VERSION, DEBUG, LOG_LEVEL
 from app.database import init_db
-from app.routes import status, contact, tracking, user, driver, location, trip
+from app.routes import status, contact, tracking, user, driver, location, trip, route, analysis, fleet_intelligence
 
 # Configure logging
 logging.basicConfig(
@@ -82,6 +82,15 @@ def create_app() -> FastAPI:
 
     # Include trip routes
     app.include_router(trip.router, prefix="/api/v1")
+
+    # Include route optimization routes
+    app.include_router(route.router, prefix="/api/v1")
+
+    # Include AI analysis routes
+    app.include_router(analysis.router, prefix="/api/v1")
+
+    # Include fleet intelligence routes
+    app.include_router(fleet_intelligence.router, prefix="/api/v1")
 
     # ==================== ROOT-LEVEL HEALTH CHECK ====================
 
