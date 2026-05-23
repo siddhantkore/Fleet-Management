@@ -64,6 +64,91 @@ const SelectionMap = ({ plants, onPointSelect, selectedFrom, selectedTo, routes 
     );
 };
 
+const renderFormattedSummary = (summary) => {
+    if (!summary) return <p className="no-summary-text">No optimization summary details available.</p>;
+    const lines = summary.split('\n');
+    const sections = {
+        title: '',
+        vehicle: [],
+        driver: [],
+        route: [],
+        continuation: []
+    };
+    
+    let currentSection = '';
+    
+    lines.forEach(line => {
+        const trimmed = line.trim();
+        if (!trimmed) return;
+        
+        if (trimmed.startsWith('**Trip Optimization Report') || trimmed.startsWith('#')) {
+            sections.title = trimmed.replace(/\*\*|#/g, '').trim();
+        } else if (trimmed.toLowerCase().startsWith('selected vehicle:')) {
+            currentSection = 'vehicle';
+            sections.vehicle.push({ type: 'header', text: trimmed });
+        } else if (trimmed.toLowerCase().startsWith('selected driver:')) {
+            currentSection = 'driver';
+            sections.driver.push({ type: 'header', text: trimmed });
+        } else if (trimmed.toLowerCase().startsWith('route plan:')) {
+            currentSection = 'route';
+        } else if (trimmed.toLowerCase().startsWith('continuation recommendation') || trimmed.toLowerCase().startsWith('continuation recommendation after delivery:')) {
+            currentSection = 'continuation';
+        } else if (trimmed.startsWith('- ')) {
+            const bulletText = trimmed.substring(2);
+            if (currentSection === 'vehicle') sections.vehicle.push({ type: 'bullet', text: bulletText });
+            else if (currentSection === 'driver') sections.driver.push({ type: 'bullet', text: bulletText });
+            else if (currentSection === 'route') sections.route.push({ type: 'bullet', text: bulletText });
+            else if (currentSection === 'continuation') sections.continuation.push({ type: 'bullet', text: bulletText });
+        } else {
+            if (currentSection === 'vehicle') sections.vehicle.push({ type: 'text', text: trimmed });
+            else if (currentSection === 'driver') sections.driver.push({ type: 'text', text: trimmed });
+            else if (currentSection === 'route') sections.route.push({ type: 'text', text: trimmed });
+            else if (currentSection === 'continuation') sections.continuation.push({ type: 'text', text: trimmed });
+        }
+    });
+
+    return (
+        <div className="formatted-summary-grid">
+            {sections.vehicle.length > 0 && (
+                <div className="summary-section-card vehicle-card">
+                    <h5>Vehicle Allocation</h5>
+                    {sections.vehicle.map((item, idx) => (
+                        <p key={idx} className={item.type === 'header' ? 'section-hdr' : 'section-item'}>
+                            {item.type === 'bullet' ? '• ' : ''}{item.text}
+                        </p>
+                    ))}
+                </div>
+            )}
+            {sections.driver.length > 0 && (
+                <div className="summary-section-card driver-card">
+                    <h5>Driver Allocation</h5>
+                    {sections.driver.map((item, idx) => (
+                        <p key={idx} className={item.type === 'header' ? 'section-hdr' : 'section-item'}>
+                            {item.type === 'bullet' ? '• ' : ''}{item.text}
+                        </p>
+                    ))}
+                </div>
+            )}
+            {sections.route.length > 0 && (
+                <div className="summary-section-card route-card">
+                    <h5>Route Plan</h5>
+                    {sections.route.map((item, idx) => (
+                        <p key={idx} className="section-item">• {item.text}</p>
+                    ))}
+                </div>
+            )}
+            {sections.continuation.length > 0 && (
+                <div className="summary-section-card continuation-card">
+                    <h5>Post-Delivery Recommendation</h5>
+                    {sections.continuation.map((item, idx) => (
+                        <p key={idx} className="section-item">• {item.text}</p>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+};
+
 const TripManagement = () => {
     const [trips, setTrips] = useState([]);
     const [plants, setPlants] = useState([]);
@@ -75,6 +160,7 @@ const TripManagement = () => {
     const [searchResults, setSearchResults] = useState([]);
     const [searchTarget, setSearchTarget] = useState(null); // 'from' or 'to'
     const searchTimeout = useRef(null);
+    const [expandedTripId, setExpandedTripId] = useState(null);
 
     const [formData, setFormData] = useState({
         from_loc: '', to_loc: '', start_time: '', cargo_weight: 0,
@@ -385,9 +471,9 @@ const TripManagement = () => {
                                     </div>
                                 )}
                             </div>
-
+                            
                             <h4>Optimization Summary</h4>
-                            <pre className="summary-text">{optimizationResult.summary}</pre>
+                            {renderFormattedSummary(optimizationResult.summary)}
                         </div>
                     )}
                 </div>
@@ -401,38 +487,76 @@ const TripManagement = () => {
                     </thead>
                     <tbody>
                         {trips.length > 0 ? trips.map(trip => (
-                            <tr key={trip.trip_id}>
-                                <td>
-                                    <div className="trip-id-cell">
-                                        <strong>{trip.trip_id}</strong>
-                                        <span className="time-sub">{new Date(trip.start_time).toLocaleString()}</span>
-                                    </div>
-                                </td>
-                                <td>{trip.vehicle_id}</td>
-                                <td>{trip.driver_id}</td>
-                                <td>{getPlantName(trip.from_loc)}</td>
-                                <td>{getPlantName(trip.to_loc)}</td>
-                                <td>
-                                    <div className="cargo-cell">
-                                        <span>{trip.cargo_weight} kg</span>
-                                        {trip.cargo_type && trip.cargo_type !== 'General' && (
-                                            <span className="cargo-type-badge">{trip.cargo_type}</span>
-                                        )}
-                                    </div>
-                                </td>
-                                <td>
-                                    <span className="status-badge" style={{ backgroundColor: getStatusColor(trip.status) }}>
-                                        {trip.status}
-                                    </span>
-                                </td>
-                                <td>
-                                    <div className="action-buttons">
-                                        {trip.status === 'Planned' && <button className="action-btn start-btn" onClick={() => handleStartTrip(trip.trip_id)}>Start</button>}
-                                        {trip.status === 'In-Transit' && <button className="action-btn complete-btn" onClick={() => handleCompleteTrip(trip.trip_id)}>Complete</button>}
-                                        {trip.status === 'Completed' && <span className="done-icon">Done</span>}
-                                    </div>
-                                </td>
-                            </tr>
+                            <React.Fragment key={trip.trip_id}>
+                                <tr className="clickable-row" onClick={() => setExpandedTripId(expandedTripId === trip.trip_id ? null : trip.trip_id)}>
+                                    <td>
+                                        <div className="trip-id-cell">
+                                            <strong>{trip.trip_id}</strong>
+                                            <span className="time-sub">{new Date(trip.start_time).toLocaleString()}</span>
+                                        </div>
+                                    </td>
+                                    <td>{trip.vehicle_id}</td>
+                                    <td>{trip.driver_id}</td>
+                                    <td>{getPlantName(trip.from_loc)}</td>
+                                    <td>{getPlantName(trip.to_loc)}</td>
+                                    <td>
+                                        <div className="cargo-cell">
+                                            <span>{trip.cargo_weight} kg</span>
+                                            {trip.cargo_type && trip.cargo_type !== 'General' && (
+                                                <span className="cargo-type-badge">{trip.cargo_type}</span>
+                                            )}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span className="status-badge" style={{ backgroundColor: getStatusColor(trip.status) }}>
+                                            {trip.status}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div className="action-buttons">
+                                            {trip.status === 'Planned' && (
+                                                <button className="action-btn start-btn" onClick={(e) => { e.stopPropagation(); handleStartTrip(trip.trip_id); }}>
+                                                    Start
+                                                </button>
+                                            )}
+                                            {trip.status === 'In-Transit' && (
+                                                <button className="action-btn complete-btn" onClick={(e) => { e.stopPropagation(); handleCompleteTrip(trip.trip_id); }}>
+                                                    Complete
+                                                </button>
+                                            )}
+                                            {trip.status === 'Completed' && <span className="done-icon">Done</span>}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {expandedTripId === trip.trip_id && (
+                                    <tr className="trip-expanded-row" onClick={(e) => e.stopPropagation()}>
+                                        <td colSpan="8">
+                                            <div className="trip-details-panel">
+                                                <div className="trip-details-grid">
+                                                    <div className="trip-detail-col">
+                                                        <h4>Route & Schedule</h4>
+                                                        <p><strong>Route:</strong> {getPlantName(trip.from_loc)} → {getPlantName(trip.to_loc)}</p>
+                                                        <p><strong>Distance:</strong> {trip.distance_km} km</p>
+                                                        <p><strong>Scheduled Start:</strong> {new Date(trip.start_time).toLocaleString()}</p>
+                                                        <p><strong>Completion Time:</strong> {trip.end_time ? new Date(trip.end_time).toLocaleString() : 'In-Progress / Not Completed'}</p>
+                                                    </div>
+                                                    <div className="trip-detail-col">
+                                                        <h4>Vehicle & Driver</h4>
+                                                        <p><strong>Vehicle ID:</strong> {trip.vehicle_id}</p>
+                                                        <p><strong>Driver ID:</strong> {trip.driver_id}</p>
+                                                        <p><strong>Cargo Volume:</strong> {trip.cargo_volume_cbm} cbm</p>
+                                                        <p><strong>Cargo Type:</strong> {trip.cargo_type}</p>
+                                                    </div>
+                                                </div>
+                                                <div className="trip-optimization-summary-section">
+                                                    <h4>Optimization Insights</h4>
+                                                    {renderFormattedSummary(trip.summary)}
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                )}
+                            </React.Fragment>
                         )) : <tr><td colSpan="8" className="no-data">No trips found.</td></tr>}
                     </tbody>
                 </table>

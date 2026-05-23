@@ -35,12 +35,25 @@ def create_vehicle(
     return new_vehicle
 
 
+from app.models.trip import Trip
+from collections import defaultdict
+
 @router.get("/", response_model=List[VehicleResponse])
 def get_vehicles(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    return db.query(Vehicle).all()
+    vehicles = db.query(Vehicle).all()
+    trips = db.query(Trip).filter(Trip.status.in_(["Planned", "In-Transit"])).all()
+    
+    trips_by_vehicle = defaultdict(list)
+    for t in trips:
+        trips_by_vehicle[t.vehicle_id].append(t)
+        
+    for v in vehicles:
+        v.assigned_trips = trips_by_vehicle[v.vehicle_id]
+        
+    return vehicles
 
 
 @router.get("/{vehicle_id}", response_model=VehicleResponse)
@@ -52,6 +65,9 @@ def get_vehicle(
     vehicle = db.query(Vehicle).filter(Vehicle.vehicle_id == vehicle_id).first()
     if not vehicle:
         raise HTTPException(status_code=404, detail="Vehicle not found")
+    
+    trips = db.query(Trip).filter(Trip.vehicle_id == vehicle_id, Trip.status.in_(["Planned", "In-Transit"])).all()
+    vehicle.assigned_trips = trips
     return vehicle
 
 

@@ -6,10 +6,11 @@ All optimization decisions are made by OR-Tools (deterministic algorithms).
 
 from __future__ import annotations
 
+import json
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.auth import get_current_user
@@ -37,14 +38,75 @@ class TripSummaryRequest(BaseModel):
     trip_id: str
 
 
+class RouteComparisonRoute(BaseModel):
+    index: int
+    distance_km: float
+    duration_minutes: float
+    ascent_m: float | None = None
+    descent_m: float | None = None
+    score: float
+    is_selected: bool
+
+
+class RouteComparisonRouteData(BaseModel):
+    mode: str | None = None
+    selected_index: int | None = None
+    routes: list[RouteComparisonRoute] = Field(default_factory=list)
+
+
 class RouteComparisonRequest(BaseModel):
     optimization_summary: str
-    route_data: str | None = None
+    route_data: RouteComparisonRouteData | str | None = None
 
 
 class GeneralAnalysisRequest(BaseModel):
     context: str
     question: str
+
+
+def _format_route_data_for_prompt(route_data: RouteComparisonRouteData | str | None) -> str:
+    if route_data is None:
+        return ""
+
+    if isinstance(route_data, str):
+        compact_text = route_data.strip()
+        if not compact_text:
+            return ""
+        try:
+            parsed = json.loads(compact_text)
+        except json.JSONDecodeError:
+            if len(compact_text) > 3000:
+                compact_text = f"{compact_text[:3000]}\n[truncated]"
+            return f"Route data:\n{compact_text}"
+
+        try:
+            route_data = RouteComparisonRouteData(**parsed)
+        except Exception:
+            normalized = json.dumps(parsed)
+            if len(normalized) > 3000:
+                normalized = f"{normalized[:3000]}\n[truncated]"
+            return f"Route data:\n{normalized}"
+
+    lines = []
+    if route_data.mode:
+        lines.append(f"Routing mode: {route_data.mode}")
+    if route_data.selected_index is not None:
+        lines.append(f"Selected route index: {route_data.selected_index + 1}")
+    if route_data.routes:
+        lines.append("Route alternatives:")
+        for route in sorted(route_data.routes, key=lambda item: item.index):
+            label = f"Route {route.index + 1}"
+            if route.is_selected:
+                label += " (selected)"
+            lines.append(
+                f"- {label}: {route.distance_km:.2f} km, "
+                f"{route.duration_minutes:.0f} min, "
+                f"ascent {route.ascent_m or 0:.0f} m, "
+                f"descent {route.descent_m or 0:.0f} m, "
+                f"score {route.score:.2f}"
+            )
+
+    return "\n".join(lines)
 
 
 @router.post("/trip-summary")
@@ -99,8 +161,9 @@ async def analyze_route_comparison(
         f"why the selected route is optimal:\n\n"
         f"{request.optimization_summary}\n\n"
     )
-    if request.route_data:
-        prompt += f"Route data (JSON): {request.route_data}\n\n"
+    route_context = _format_route_data_for_prompt(request.route_data)
+    if route_context:
+        prompt += f"{route_context}\n\n"
 
     prompt += (
         "Provide:\n"

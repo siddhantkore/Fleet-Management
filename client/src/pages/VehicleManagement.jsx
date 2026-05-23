@@ -154,7 +154,19 @@ const VehicleManagement = () => {
                             <td>{v.capacity_kg} kg</td>
                             <td><span className={`vm-fuel-badge ${v.fuel_type.toLowerCase()}`}>{v.fuel_type}</span></td>
                             <td>{v.mileage_kmpl || '-'} km/l</td>
-                            <td>{getStatusIndicator(v.current_status)} {v.current_status}</td>
+                            <td>
+                                <div>
+                                    {getStatusIndicator(v.current_status)} {v.current_status}
+                                </div>
+                                {v.assigned_trips && v.assigned_trips.length > 0 && (
+                                    <div className="vm-booking-dates">
+                                        {v.assigned_trips.map(t => {
+                                            const start = new Date(t.start_time).toLocaleDateString(undefined, {month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'});
+                                            return <span key={t.trip_id} className="vm-booking-tag" title={`Trip: ${t.trip_id} from ${t.from_loc} to ${t.to_loc}`}>Booked: {start}</span>;
+                                        })}
+                                    </div>
+                                )}
+                            </td>
                             <td className="actions">
                                 <button className="btn-small" onClick={() => openEdit(v)}>Edit</button>
                                 <button className="btn-small accent" onClick={() => handleDelete(v.vehicle_id)}>Delete</button>

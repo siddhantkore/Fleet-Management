@@ -125,17 +125,37 @@ def eligible_vehicles(
     cargo_weight: float,
     cargo_volume_cbm: float,
     cargo_type: str = "General",
+    req_start: datetime = None,
+    req_end: datetime = None,
 ) -> list[CandidateVehicle]:
     """Return available vehicles meeting capacity constraints plus utilization metrics."""
     vehicles = (
         db.query(Vehicle)
         .filter(
-            Vehicle.current_status == "Available",
             Vehicle.capacity_kg >= cargo_weight,
             Vehicle.volume_cbm >= cargo_volume_cbm,
+            Vehicle.current_status != "Maintenance",
         )
         .all()
     )
+    if not vehicles:
+        return []
+
+    # Filter out overlapping vehicles if start/end times are provided
+    if req_start and req_end:
+        overlapping_ids = set()
+        active_trips = db.query(Trip).filter(Trip.status.in_(["Planned", "In-Transit"])).all()
+        for t in active_trips:
+            t_end = t.end_time
+            if not t_end:
+                est_min = (t.distance_km / 50.0) * 60.0 * 1.15 + 120.0
+                t_end = t.start_time + timedelta(minutes=est_min)
+            if req_start < t_end and req_end > t.start_time:
+                overlapping_ids.add(t.vehicle_id)
+        vehicles = [v for v in vehicles if v.vehicle_id not in overlapping_ids]
+    else:
+        vehicles = [v for v in vehicles if v.current_status == "Available"]
+
     if not vehicles:
         return []
 
@@ -241,14 +261,18 @@ def _compute_cargo_suitability(
     return round(score, 3)
 
 
-def eligible_drivers(db: Session, start: LocationPoint) -> list[CandidateDriver]:
+def eligible_drivers(
+    db: Session,
+    start: LocationPoint,
+    req_start: datetime = None,
+    req_end: datetime = None,
+) -> list[CandidateDriver]:
     """Return drivers that are active, available, not on leave, and with valid licenses."""
     today = date.today()
     drivers = (
         db.query(Driver)
         .filter(
             Driver.status == "Active",
-            Driver.current_status == "Available",
             Driver.is_on_leave.is_(False),
             Driver.license_expiry >= today,
         )
@@ -259,6 +283,24 @@ def eligible_drivers(db: Session, start: LocationPoint) -> list[CandidateDriver]
 
     # Enforce basic data validity constraints from DB fields.
     valid_drivers = [d for d in drivers if d.driver_id and d.license_no and d.home_plant_id]
+    if not valid_drivers:
+        return []
+
+    # Filter out overlapping drivers if start/end times are provided
+    if req_start and req_end:
+        overlapping_ids = set()
+        active_trips = db.query(Trip).filter(Trip.status.in_(["Planned", "In-Transit"])).all()
+        for t in active_trips:
+            t_end = t.end_time
+            if not t_end:
+                est_min = (t.distance_km / 50.0) * 60.0 * 1.15 + 120.0
+                t_end = t.start_time + timedelta(minutes=est_min)
+            if req_start < t_end and req_end > t.start_time:
+                overlapping_ids.add(t.driver_id)
+        valid_drivers = [d for d in valid_drivers if d.driver_id not in overlapping_ids]
+    else:
+        valid_drivers = [d for d in valid_drivers if d.current_status == "Available"]
+
     if not valid_drivers:
         return []
 

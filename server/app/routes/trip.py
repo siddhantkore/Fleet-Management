@@ -37,6 +37,7 @@ def schedule_trip(
         request.cargo_weight,
         request.cargo_volume_cbm or 0.0,
         request.cargo_type or "General",
+        start_time=request.start_time,
     )
     if error:
         raise HTTPException(status_code=400, detail=error)

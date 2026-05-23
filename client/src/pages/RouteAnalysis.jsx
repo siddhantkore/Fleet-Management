@@ -10,6 +10,150 @@ const plantIcon = new L.Icon({
     iconSize: [18, 30], iconAnchor: [9, 30], popupAnchor: [1, -24], shadowSize: [30, 30]
 });
 
+const renderBoldText = (text) => {
+    const parts = text.split('**');
+    return parts.map((part, i) => {
+        if (i % 2 === 1) {
+            return <strong key={i} style={{ color: '#0f172a' }}>{part}</strong>;
+        }
+        return part;
+    });
+};
+
+const renderMarkdown = (text) => {
+    if (!text) return null;
+    const lines = text.split('\n');
+    return (
+        <div className="markdown-body">
+            {lines.map((line, idx) => {
+                const trimmed = line.trim();
+                if (trimmed.startsWith('###')) {
+                    return <h4 key={idx} className="md-h4">{trimmed.replace(/^###\s*/, '')}</h4>;
+                }
+                if (trimmed.startsWith('##')) {
+                    return <h3 key={idx} className="md-h3">{trimmed.replace(/^##\s*/, '')}</h3>;
+                }
+                if (trimmed.startsWith('#')) {
+                    return <h2 key={idx} className="md-h2">{trimmed.replace(/^#\s*/, '')}</h2>;
+                }
+                if (trimmed.startsWith('-') || trimmed.startsWith('*')) {
+                    const content = trimmed.replace(/^[\-\*]\s*/, '');
+                    return <li key={idx} className="md-li">{renderBoldText(content)}</li>;
+                }
+                if (trimmed) {
+                    return <p key={idx} className="md-p">{renderBoldText(trimmed)}</p>;
+                }
+                return <div key={idx} className="md-br"></div>;
+            })}
+        </div>
+    );
+};
+
+const renderFormattedSummary = (summary) => {
+    if (!summary) return <p className="no-summary-text">No optimization summary details available.</p>;
+    const lines = summary.split('\n');
+    const sections = {
+        title: '',
+        vehicle: [],
+        driver: [],
+        route: [],
+        continuation: []
+    };
+    
+    let currentSection = '';
+    
+    lines.forEach(line => {
+        const trimmed = line.trim();
+        if (!trimmed) return;
+        
+        if (trimmed.startsWith('**Trip Optimization Report') || trimmed.startsWith('#')) {
+            sections.title = trimmed.replace(/\*\*|#/g, '').trim();
+        } else if (trimmed.toLowerCase().startsWith('selected vehicle:')) {
+            currentSection = 'vehicle';
+            sections.vehicle.push({ type: 'header', text: trimmed });
+        } else if (trimmed.toLowerCase().startsWith('selected driver:')) {
+            currentSection = 'driver';
+            sections.driver.push({ type: 'header', text: trimmed });
+        } else if (trimmed.toLowerCase().startsWith('route plan:')) {
+            currentSection = 'route';
+        } else if (trimmed.toLowerCase().startsWith('continuation recommendation') || trimmed.toLowerCase().startsWith('continuation recommendation after delivery:')) {
+            currentSection = 'continuation';
+        } else if (trimmed.startsWith('- ')) {
+            const bulletText = trimmed.substring(2);
+            if (currentSection === 'vehicle') sections.vehicle.push({ type: 'bullet', text: bulletText });
+            else if (currentSection === 'driver') sections.driver.push({ type: 'bullet', text: bulletText });
+            else if (currentSection === 'route') sections.route.push({ type: 'bullet', text: bulletText });
+            else if (currentSection === 'continuation') sections.continuation.push({ type: 'bullet', text: bulletText });
+        } else {
+            if (currentSection === 'vehicle') sections.vehicle.push({ type: 'text', text: trimmed });
+            else if (currentSection === 'driver') sections.driver.push({ type: 'text', text: trimmed });
+            else if (currentSection === 'route') sections.route.push({ type: 'text', text: trimmed });
+            else if (currentSection === 'continuation') sections.continuation.push({ type: 'text', text: trimmed });
+        }
+    });
+
+    return (
+        <div className="formatted-summary-grid">
+            {sections.vehicle.length > 0 && (
+                <div className="summary-section-card vehicle-card">
+                    <h5>Vehicle Allocation</h5>
+                    {sections.vehicle.map((item, idx) => (
+                        <p key={idx} className={item.type === 'header' ? 'section-hdr' : 'section-item'}>
+                            {item.type === 'bullet' ? '• ' : ''}{item.text}
+                        </p>
+                    ))}
+                </div>
+            )}
+            {sections.driver.length > 0 && (
+                <div className="summary-section-card driver-card">
+                    <h5>Driver Allocation</h5>
+                    {sections.driver.map((item, idx) => (
+                        <p key={idx} className={item.type === 'header' ? 'section-hdr' : 'section-item'}>
+                            {item.type === 'bullet' ? '• ' : ''}{item.text}
+                        </p>
+                    ))}
+                </div>
+            )}
+            {sections.route.length > 0 && (
+                <div className="summary-section-card route-card">
+                    <h5>Route Plan</h5>
+                    {sections.route.map((item, idx) => (
+                        <p key={idx} className="section-item">• {item.text}</p>
+                    ))}
+                </div>
+            )}
+            {sections.continuation.length > 0 && (
+                <div className="summary-section-card continuation-card">
+                    <h5>Post-Delivery Recommendation</h5>
+                    {sections.continuation.map((item, idx) => (
+                        <p key={idx} className="section-item">• {item.text}</p>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+};
+
+const buildRouteAnalysisPayload = (routeData, displayRoutes) => {
+    const routes = (displayRoutes || []).map((route) => ({
+        index: route.index,
+        distance_km: Number(route.distance_km ?? 0),
+        duration_minutes: Number(route.duration_minutes ?? 0),
+        ascent_m: Number(route.ascent_m ?? 0),
+        descent_m: Number(route.descent_m ?? 0),
+        score: Number(route.score ?? 0),
+        is_selected: Boolean(route.is_selected),
+    }));
+
+    const selectedIndexFromRoutes = routes.findIndex((route) => route.is_selected);
+
+    return {
+        mode: routeData?.mode || null,
+        selected_index: routeData?.selected_index ?? (selectedIndexFromRoutes >= 0 ? selectedIndexFromRoutes : null),
+        routes,
+    };
+};
+
 const RouteAnalysis = () => {
     const [plants, setPlants] = useState([]);
     const [trips, setTrips] = useState([]);
@@ -86,9 +230,10 @@ const RouteAnalysis = () => {
         setAiLoading(true);
         const summary = selectedTrip?.summary || 'No optimization summary available.';
         try {
+            const compactRouteData = buildRouteAnalysisPayload(routeData, displayRoutes);
             const res = await api.post('/analysis/route-comparison', {
                 optimization_summary: summary,
-                route_data: routeData ? JSON.stringify(routeData) : null,
+                route_data: compactRouteData.routes.length > 0 ? compactRouteData : null,
             });
             setAiAnalysis(res.data?.ai_analysis || 'No analysis returned.');
         } catch (err) {
@@ -271,7 +416,7 @@ const RouteAnalysis = () => {
                                 {aiAnalysis && (
                                     <div className="ra-ai-result">
                                         <h4>AI Route Analysis</h4>
-                                        <pre className="ra-ai-text">{aiAnalysis}</pre>
+                                        <div className="ra-ai-formatted">{renderMarkdown(aiAnalysis)}</div>
                                     </div>
                                 )}
                             </div>
@@ -283,7 +428,7 @@ const RouteAnalysis = () => {
                 {selectedTrip?.summary && (
                     <div className="ra-summary-panel">
                         <h3>Optimization Summary</h3>
-                        <pre className="ra-summary-text">{selectedTrip.summary}</pre>
+                        {renderFormattedSummary(selectedTrip.summary)}
                     </div>
                 )}
 

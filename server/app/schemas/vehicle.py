@@ -1,6 +1,20 @@
-from typing import Optional
+from datetime import datetime
+from typing import List, Optional
 
 from pydantic import BaseModel
+
+
+class TripShort(BaseModel):
+    trip_id: str
+    start_time: datetime
+    end_time: Optional[datetime] = None
+    distance_km: float
+    status: str
+    from_loc: str
+    to_loc: str
+
+    class Config:
+        from_attributes = True
 
 
 class VehicleBase(BaseModel):
@@ -32,10 +46,11 @@ class VehicleCreate(VehicleBase):
 
 class VehicleResponse(VehicleBase):
     """
-    Schema for Vehicle response including current status.
+    Schema for Vehicle response including current status and assigned trips.
     """
 
     current_status: str
+    assigned_trips: Optional[List[TripShort]] = []
 
     class Config:
         from_attributes = True

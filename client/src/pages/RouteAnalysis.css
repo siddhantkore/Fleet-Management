@@ -310,3 +310,88 @@
     color: #999;
     padding: 20px;
 }
+
+/* AI Markdown rendering styles */
+.markdown-body {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.md-h2 {
+    font-size: 1.15rem;
+    color: #1e1b4b;
+    margin: 12px 0 6px 0;
+    border-bottom: 2px solid #e0e7ff;
+    padding-bottom: 2px;
+}
+.md-h3 {
+    font-size: 1.05rem;
+    color: #1e1b4b;
+    margin: 10px 0 4px 0;
+}
+.md-h4 {
+    font-size: 0.95rem;
+    color: #312e81;
+    margin: 8px 0 4px 0;
+}
+.md-p {
+    font-size: 0.85rem;
+    color: #374151;
+    line-height: 1.5;
+    margin: 2px 0;
+}
+.md-li {
+    font-size: 0.85rem;
+    color: #374151;
+    line-height: 1.5;
+    margin: 2px 0 2px 16px;
+    list-style-type: disc;
+}
+.md-br {
+    height: 4px;
+}
+
+/* Copy formatted summary styles from TripManagement.css if not present */
+.formatted-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
+    margin-top: 12px;
+}
+.summary-section-card {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 14px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+.summary-section-card h5 {
+    margin: 0 0 8px 0;
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #475569;
+}
+.vehicle-card { border-top: 4px solid #3b82f6; }
+.driver-card { border-top: 4px solid #10b981; }
+.route-card { border-top: 4px solid #f59e0b; }
+.continuation-card { border-top: 4px solid #8b5cf6; }
+
+.section-hdr {
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 6px !important;
+    font-size: 0.85rem !important;
+}
+.section-item {
+    font-size: 0.8rem !important;
+    color: #475569;
+    margin: 4px 0 !important;
+    line-height: 1.4;
+}
+.no-summary-text {
+    font-size: 0.85rem;
+    color: #64748b;
+    font-style: italic;
+}

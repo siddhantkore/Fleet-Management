@@ -18,7 +18,7 @@ class GroqProvider(LLMProvider):
 
     def __init__(self):
         self.api_key = os.getenv("GROQ_API_KEY", "")
-        self.model = os.getenv("GROQ_MODEL", "llama-3.1-70b-versatile")
+        self.model = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
         self.base_url = "https://api.groq.com/openai/v1/chat/completions"
         self.timeout = 30
 
@@ -45,6 +45,7 @@ class GroqProvider(LLMProvider):
             headers={
                 "Authorization": f"Bearer {self.api_key}",
                 "Content-Type": "application/json",
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
             },
         )
 
@@ -52,7 +53,11 @@ class GroqProvider(LLMProvider):
             with urlopen(req, timeout=self.timeout) as response:
                 data = json.loads(response.read().decode("utf-8"))
                 return data["choices"][0]["message"]["content"]
-        except (HTTPError, URLError, TimeoutError, KeyError, json.JSONDecodeError) as exc:
+        except HTTPError as exc:
+            err_body = exc.read().decode("utf-8")
+            logger.error(f"Groq API HTTPError {exc.code}: {err_body}")
+            return f"[AI summary unavailable: HTTP Error {exc.code}: {exc.reason}]"
+        except (URLError, TimeoutError, KeyError, json.JSONDecodeError) as exc:
             logger.error(f"Groq API error: {exc}")
             return f"[AI summary unavailable: {exc}]"
 

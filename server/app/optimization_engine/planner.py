@@ -154,6 +154,8 @@ def _build_summary(
     return "\n".join(lines)
 
 
+from datetime import datetime, timedelta
+
 def optimize_trip(
     db: Session,
     from_loc: str,
@@ -161,6 +163,7 @@ def optimize_trip(
     cargo_weight: float,
     cargo_volume_cbm: float = 0.0,
     cargo_type: str = "General",
+    start_time: datetime = None,
 ):
     """Optimize dispatch selection using a decoupled OR-Tools assignment module."""
     if cargo_weight <= 0:
@@ -173,13 +176,28 @@ def optimize_trip(
     if not start or not destination:
         return None, "Invalid source or destination coordinates/location ID."
 
-    vehicles = eligible_vehicles(db, start, cargo_weight, cargo_volume_cbm, cargo_type)
-    if not vehicles:
-        return None, "No available vehicles meet weight/volume constraints."
+    # Estimate travel duration to define the scheduling window
+    route_estimate = estimate_route(start, destination)
+    est_duration_min = (route_estimate.distance_km / 50.0) * 60.0 * 1.15 + 120.0 # 50 km/h + 15% buffer + 2h loading
 
-    drivers = eligible_drivers(db, start)
+    req_start = start_time if start_time else datetime.utcnow()
+    req_end = req_start + timedelta(minutes=est_duration_min)
+
+    vehicles = eligible_vehicles(
+        db,
+        start,
+        cargo_weight,
+        cargo_volume_cbm,
+        cargo_type,
+        req_start=req_start,
+        req_end=req_end,
+    )
+    if not vehicles:
+        return None, "No available vehicles meet weight/volume constraints for this time window."
+
+    drivers = eligible_drivers(db, start, req_start=req_start, req_end=req_end)
     if not drivers:
-        return None, "No eligible drivers are currently available with valid license/data."
+        return None, "No eligible drivers are currently available for this time window."
 
     # Get route alternatives with geometry
     route_result = optimize_routes(

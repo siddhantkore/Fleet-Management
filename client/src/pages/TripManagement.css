@@ -267,3 +267,94 @@
     .scheduling-grid { grid-template-columns: 1fr; }
     .result-details-grid { grid-template-columns: 1fr; }
 }
+
+/* Expanded Trip Details styling */
+.trips-table tbody tr.clickable-row {
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+.trips-table tbody tr.clickable-row:hover {
+    background: #f1f5f9;
+}
+.trip-expanded-row {
+    background: #f8fafc;
+}
+.trip-expanded-row td {
+    padding: 0 !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+}
+.trip-details-panel {
+    padding: 20px 24px;
+    background: #f8fafc;
+    border-left: 4px solid #3b82f6;
+}
+.trip-details-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-bottom: 20px;
+}
+.trip-detail-col h4 {
+    margin: 0 0 10px 0;
+    font-size: 0.95rem;
+    color: #1e293b;
+    border-bottom: 2px solid #e2e8f0;
+    padding-bottom: 4px;
+}
+.trip-detail-col p {
+    margin: 6px 0;
+    font-size: 0.85rem;
+    color: #475569;
+}
+.trip-optimization-summary-section h4 {
+    margin: 0 0 12px 0;
+    font-size: 0.95rem;
+    color: #1e293b;
+    border-bottom: 2px solid #e2e8f0;
+    padding-bottom: 4px;
+}
+
+/* Formatted Summary Grid styling */
+.formatted-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
+    margin-top: 12px;
+}
+.summary-section-card {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 14px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+.summary-section-card h5 {
+    margin: 0 0 8px 0;
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #475569;
+}
+.vehicle-card { border-top: 4px solid #3b82f6; }
+.driver-card { border-top: 4px solid #10b981; }
+.route-card { border-top: 4px solid #f59e0b; }
+.continuation-card { border-top: 4px solid #8b5cf6; }
+
+.section-hdr {
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 6px !important;
+    font-size: 0.85rem !important;
+}
+.section-item {
+    font-size: 0.8rem !important;
+    color: #475569;
+    margin: 4px 0 !important;
+    line-height: 1.4;
+}
+.no-summary-text {
+    font-size: 0.85rem;
+    color: #64748b;
+    font-style: italic;
+}
