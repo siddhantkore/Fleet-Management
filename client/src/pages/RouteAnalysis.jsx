@@ -7,7 +7,7 @@ import './RouteAnalysis.css';
 const plantIcon = new L.Icon({
     iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
     shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-    iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41]
+    iconSize: [18, 30], iconAnchor: [9, 30], popupAnchor: [1, -24], shadowSize: [30, 30]
 });
 
 const RouteAnalysis = () => {
@@ -215,7 +215,7 @@ const RouteAnalysis = () => {
                                     }}
                                 >
                                     <Popup>
-                                        <strong>{route.is_selected ? '✅ Optimal' : `⬜ Alt ${route.index + 1}`}</strong><br />
+                                        <strong>{route.is_selected ? 'Optimal' : `Alt ${route.index + 1}`}</strong><br />
                                         {route.distance_km} km • {route.duration_minutes?.toFixed(0)} min<br />
                                         Score: {route.score}
                                     </Popup>
@@ -233,7 +233,7 @@ const RouteAnalysis = () => {
                             {displayRoutes.map((r, idx) => (
                                 <div key={idx} className={`ra-route-card ${r.is_selected ? 'selected' : ''}`}>
                                     <div className="ra-route-card-header">
-                                        <span className="ra-route-tag">{r.is_selected ? '✅ OPTIMAL' : `Alternative ${r.index + 1}`}</span>
+                                        <span className="ra-route-tag">{r.is_selected ? 'OPTIMAL' : `Alternative ${r.index + 1}`}</span>
                                         <span className="ra-route-score">Score: {r.score}</span>
                                     </div>
                                     <div className="ra-route-stats">
@@ -266,7 +266,7 @@ const RouteAnalysis = () => {
                                     onClick={requestAiAnalysis}
                                     disabled={aiLoading}
                                 >
-                                    {aiLoading ? '🤖 Generating Analysis...' : '🤖 Generate AI Analysis'}
+                                    {aiLoading ? 'Generating Analysis...' : 'Generate AI Analysis'}
                                 </button>
                                 {aiAnalysis && (
                                     <div className="ra-ai-result">

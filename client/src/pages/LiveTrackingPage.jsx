@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, LayersControl, useMap } from 'react-leaflet';
+import { useNavigate } from 'react-router-dom';
 import L from 'leaflet';
 import api from '../services/api';
 import Navbar from '../components/Navbar/Navbar';
@@ -10,30 +11,30 @@ import './LiveTrackingPage.css';
 const plantIcon = new L.Icon({
     iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
     shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-    iconSize: [25, 41],
-    iconAnchor: [12, 41],
-    popupAnchor: [1, -34],
-    shadowSize: [41, 41]
+    iconSize: [18, 30],
+    iconAnchor: [9, 30],
+    popupAnchor: [1, -24],
+    shadowSize: [30, 30]
 });
 
 // Green icon for active/driving drivers
 const driverActiveIcon = new L.Icon({
     iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
     shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-    iconSize: [25, 41],
-    iconAnchor: [12, 41],
-    popupAnchor: [1, -34],
-    shadowSize: [41, 41]
+    iconSize: [18, 30],
+    iconAnchor: [9, 30],
+    popupAnchor: [1, -24],
+    shadowSize: [30, 30]
 });
 
 // Default blue icon for idle drivers
 const driverIdleIcon = new L.Icon({
     iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
     shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-    iconSize: [25, 41],
-    iconAnchor: [12, 41],
-    popupAnchor: [1, -34],
-    shadowSize: [41, 41]
+    iconSize: [18, 30],
+    iconAnchor: [9, 30],
+    popupAnchor: [1, -24],
+    shadowSize: [30, 30]
 });
 
 const STALE_THRESHOLD_MS = 5 * 60 * 1000; // 5 minutes
@@ -60,7 +61,7 @@ const ratingStars = (r) => {
     if (r == null) return '—';
     const full = Math.floor(r);
     const half = r - full >= 0.5;
-    return '★'.repeat(full) + (half ? '½' : '') + '☆'.repeat(5 - full - (half ? 1 : 0)) + ` ${r.toFixed(1)}`;
+    return '*'.repeat(full) + (half ? '.5' : '') + ` ${r.toFixed(1)}/5`;
 };
 
 // ─── Component ──────────────────────────────────────────────────
@@ -85,6 +86,7 @@ const MapBoundsAdjuster = ({ locations, plants }) => {
     return null;
 };
 const LiveTrackingPage = () => {
+    const navigate = useNavigate();
     const [locations, setLocations] = useState({});
     const [plants, setPlants] = useState([]);
     const [trips, setTrips] = useState([]);
@@ -229,7 +231,12 @@ const LiveTrackingPage = () => {
         <div className="live-tracking-page">
             <Navbar />
             <div className="live-tracking-container">
-                <h1>Live Fleet Tracking</h1>
+                <div className="tracking-header">
+                    <button className="back-to-dashboard" onClick={() => navigate('/dashboard')}>
+                        ← Back to Dashboard
+                    </button>
+                    <h1>Live Fleet Tracking</h1>
+                </div>
                 <div className="map-wrapper">
                     <MapContainer center={[18.5204, 73.8567]} zoom={10} style={{ height: '70vh', width: '100%' }}>
                         <LayersControl position="topright">
@@ -278,8 +285,8 @@ const LiveTrackingPage = () => {
                                         <div className="marker-popup">
                                             <strong>{loc.driver_name || loc.driver_id}</strong>
                                             <span className="popup-id">ID: {loc.driver_id}</span>
-                                            {loc.speed != null && <span className="popup-speed">🚗 {formatSpeed(loc.speed)}</span>}
-                                            {loc.battery_level != null && <span className="popup-battery">🔋 {formatBattery(loc.battery_level)}</span>}
+                                            {loc.speed != null && <span className="popup-speed">Speed: {formatSpeed(loc.speed)}</span>}
+                                            {loc.battery_level != null && <span className="popup-battery">Bat: {formatBattery(loc.battery_level)}</span>}
                                             {loc.activity_type && <span className={`popup-activity ${loc.activity_type}`}>● {loc.activity_type}</span>}
                                             {loc.trip_id && <span className="popup-trip">Trip: {loc.trip_id}</span>}
                                             <span className="popup-time">Updated: {new Date(loc.updated_at).toLocaleString()}</span>
@@ -309,7 +316,7 @@ const LiveTrackingPage = () => {
                                     onClick={() => setSelectedTripId(trip.trip_id)}
                                 >
                                     <span className="trip-id">{trip.trip_id}</span>
-                                    <span className="trip-route">{trip.from_loc} ➔ {trip.to_loc}</span>
+                                    <span className="trip-route">{trip.from_loc} &rarr; {trip.to_loc}</span>
                                 </li>
                             ))}
                         </ul>
@@ -333,7 +340,7 @@ const LiveTrackingPage = () => {
                                     <div className="driver-list-meta">
                                         <span className="coords-text">{loc.latitude.toFixed(4)}, {loc.longitude.toFixed(4)}</span>
                                         {loc.speed != null && <span className="speed-tag">{formatSpeed(loc.speed)}</span>}
-                                        {loc.battery_level != null && <span className="battery-tag">🔋 {formatBattery(loc.battery_level)}</span>}
+                                        {loc.battery_level != null && <span className="battery-tag">Bat: {formatBattery(loc.battery_level)}</span>}
                                     </div>
                                     {loc.trip_id && <div className="trip-tag">Trip: {loc.trip_id}</div>}
                                 </li>
@@ -346,7 +353,7 @@ const LiveTrackingPage = () => {
             {/* ─── Driver Detail Side Panel ─────────────────────────── */}
             <div className={`detail-panel-overlay ${detailPanelOpen ? 'open' : ''}`} onClick={closeDetailPanel} />
             <div className={`detail-panel ${detailPanelOpen ? 'open' : ''}`}>
-                <button className="detail-panel-close" onClick={closeDetailPanel}>✕</button>
+                <button className="detail-panel-close" onClick={closeDetailPanel}>X</button>
                 {detailLoading && <div className="detail-loading">Loading driver details…</div>}
                 {!detailLoading && dd && (
                     <>
@@ -395,32 +402,32 @@ const LiveTrackingPage = () => {
                                 <h4>Live Telemetry</h4>
                                 <div className="telemetry-grid">
                                     <div className="telemetry-card speed">
-                                        <span className="telemetry-icon">🚗</span>
+                                        <span className="telemetry-icon">SPD</span>
                                         <span className="telemetry-value">{formatSpeed(dd.live_location.speed)}</span>
                                         <span className="telemetry-label">Speed</span>
                                     </div>
                                     <div className="telemetry-card heading-card">
-                                        <span className="telemetry-icon">🧭</span>
+                                        <span className="telemetry-icon">DIR</span>
                                         <span className="telemetry-value">{formatHeading(dd.live_location.heading)}</span>
                                         <span className="telemetry-label">Heading</span>
                                     </div>
                                     <div className="telemetry-card altitude">
-                                        <span className="telemetry-icon">⛰️</span>
+                                        <span className="telemetry-icon">ALT</span>
                                         <span className="telemetry-value">{dd.live_location.altitude != null ? `${dd.live_location.altitude.toFixed(0)} m` : '—'}</span>
                                         <span className="telemetry-label">Altitude</span>
                                     </div>
                                     <div className="telemetry-card battery-card">
-                                        <span className="telemetry-icon">{dd.live_location.is_charging ? '⚡' : '🔋'}</span>
+                                        <span className="telemetry-icon">{dd.live_location.is_charging ? 'CHG' : 'BAT'}</span>
                                         <span className="telemetry-value">{formatBattery(dd.live_location.battery_level)}</span>
                                         <span className="telemetry-label">{dd.live_location.is_charging ? 'Charging' : 'Battery'}</span>
                                     </div>
                                     <div className="telemetry-card accuracy-card">
-                                        <span className="telemetry-icon">📡</span>
+                                        <span className="telemetry-icon">GPS</span>
                                         <span className="telemetry-value">{dd.live_location.accuracy_h != null ? `±${dd.live_location.accuracy_h.toFixed(0)}m` : '—'}</span>
                                         <span className="telemetry-label">GPS Accuracy</span>
                                     </div>
                                     <div className="telemetry-card network-card">
-                                        <span className="telemetry-icon">{dd.live_location.network_type === 'wifi' ? '📶' : '📱'}</span>
+                                        <span className="telemetry-icon">{dd.live_location.network_type === 'wifi' ? 'WiFi' : 'NET'}</span>
                                         <span className="telemetry-value">{dd.live_location.network_type || '—'}</span>
                                         <span className="telemetry-label">Network</span>
                                     </div>
@@ -447,7 +454,7 @@ const LiveTrackingPage = () => {
                                     </div>
                                     <div className="detail-item">
                                         <label>Route</label>
-                                        <span>{dd.active_trip.from_loc} ➔ {dd.active_trip.to_loc}</span>
+                                        <span>{dd.active_trip.from_loc} &rarr; {dd.active_trip.to_loc}</span>
                                     </div>
                                     <div className="detail-item">
                                         <label>Distance</label>

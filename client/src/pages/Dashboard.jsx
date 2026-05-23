@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import Icons from '../components/Icons/Icons';
 import DriverManagement from './DriverManagement';
 import PlantManagement from './PlantManagement';
+import VehicleManagement from './VehicleManagement';
 import TripManagement from './TripManagement';
 import RouteAnalysis from './RouteAnalysis';
 import FleetIntelligence from './FleetIntelligence';
@@ -17,7 +18,6 @@ const Dashboard = () => {
     const [recCount, setRecCount] = useState(0);
 
     useEffect(() => {
-        // Fetch recommendation count for badge
         const fetchCount = async () => {
             try {
                 const res = await api.get('/fleet/recommendations/count');
@@ -25,7 +25,7 @@ const Dashboard = () => {
             } catch { /* ignore */ }
         };
         fetchCount();
-        const interval = setInterval(fetchCount, 30000); // Refresh every 30s
+        const interval = setInterval(fetchCount, 30000);
         return () => clearInterval(interval);
     }, []);
 
@@ -35,24 +35,34 @@ const Dashboard = () => {
     };
 
     const navItems = [
-        { path: '/dashboard/plants', label: 'Plants', icon: () => <Icons.Building size={20} color="#1976d2" /> },
-        { path: '/dashboard/drivers', label: 'Drivers', icon: () => <Icons.User size={20} color="#1976d2" /> },
-        { path: '/dashboard/trips', label: 'Trips', icon: () => <Icons.Truck size={20} color="#1976d2" /> },
-        { path: '/dashboard/routes', label: 'Route Analysis', icon: () => <Icons.MapPin size={20} color="#1976d2" /> },
+        { path: '/dashboard/plants', label: 'Plants', icon: 'building', color: '#8b5cf6' },
+        { path: '/dashboard/vehicles', label: 'Vehicles', icon: 'truck', color: '#2563eb' },
+        { path: '/dashboard/drivers', label: 'Drivers', icon: 'user', color: '#059669' },
+        { path: '/dashboard/trips', label: 'Trips', icon: 'truck', color: '#d97706' },
+        { path: '/dashboard/routes', label: 'Route Analysis', icon: 'mappin', color: '#dc2626' },
         {
-            path: '/dashboard/fleet-intelligence',
-            label: 'Fleet Intelligence',
-            icon: () => <Icons.Truck size={20} color="#1976d2" />,
+            path: '/dashboard/fleet-intelligence', label: 'Fleet Intelligence', icon: 'truck', color: '#7c3aed',
             badge: recCount > 0 ? recCount : null,
         },
-        { path: '/tracking', label: 'Live Tracking', icon: () => <Icons.MapPin size={20} color="#1976d2" /> },
+        { path: '/tracking', label: 'Live Tracking', icon: 'mappin', color: '#0891b2' },
     ];
+
+    const renderIcon = (name, color) => {
+        const style = { color };
+        switch (name) {
+            case 'building': return <span style={style}><Icons.Building size={18} /></span>;
+            case 'user': return <span style={style}><Icons.User size={18} /></span>;
+            case 'truck': return <span style={style}><Icons.Truck size={18} /></span>;
+            case 'mappin': return <span style={style}><Icons.MapPin size={18} /></span>;
+            default: return <span style={style}><Icons.Truck size={18} /></span>;
+        }
+    };
 
     return (
         <div className="dashboard-layout">
             <aside className="sidebar">
                 <div className="sidebar-header">
-                    <span className="logo-icon"><Icons.Truck size={28} color="#1976d2" /></span>
+                    <span className="logo-icon"><Icons.Truck size={24} color="#2563eb" /></span>
                     <h3>Fleet Admin</h3>
                 </div>
                 <nav className="sidebar-nav">
@@ -62,7 +72,7 @@ const Dashboard = () => {
                             to={item.path}
                             className={`nav-item ${location.pathname === item.path ? 'active' : ''}`}
                         >
-                            <span className="nav-icon">{item.icon()}</span>
+                            <span className="nav-icon">{renderIcon(item.icon, location.pathname === item.path ? item.color : '#94a3b8')}</span>
                             {item.label}
                             {item.badge && <span className="nav-badge">{item.badge}</span>}
                         </Link>
@@ -83,18 +93,20 @@ const Dashboard = () => {
                 <div className="dashboard-content">
                     <Routes>
                         <Route path="plants" element={<PlantManagement />} />
+                        <Route path="vehicles" element={<VehicleManagement />} />
                         <Route path="drivers" element={<DriverManagement />} />
                         <Route path="trips" element={<TripManagement />} />
                         <Route path="routes" element={<RouteAnalysis />} />
                         <Route path="fleet-intelligence" element={<FleetIntelligence />} />
                         <Route path="/" element={<div className="welcome-screen">
+                            <div className="welcome-icon"><Icons.Truck size={48} /></div>
                             <h1>Welcome back, Admin</h1>
                             <p>Select a category from the sidebar to manage your fleet assets.</p>
                             {recCount > 0 && (
                                 <div className="welcome-notification">
-                                    <span className="notification-icon">🚛</span>
+                                    <span className="notification-icon"><Icons.Clipboard size={18} /></span>
                                     <span>{recCount} pending fleet repositioning recommendation{recCount > 1 ? 's' : ''}</span>
-                                    <Link to="/dashboard/fleet-intelligence" className="notification-link">View →</Link>
+                                    <Link to="/dashboard/fleet-intelligence" className="notification-link">View</Link>
                                 </div>
                             )}
                         </div>} />

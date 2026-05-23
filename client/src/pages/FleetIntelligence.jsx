@@ -7,7 +7,7 @@ import './FleetIntelligence.css';
 const plantIcon = new L.Icon({
     iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
     shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-    iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41]
+    iconSize: [18, 30], iconAnchor: [9, 30], popupAnchor: [1, -24], shadowSize: [30, 30]
 });
 
 const FleetIntelligence = () => {
@@ -85,10 +85,10 @@ const FleetIntelligence = () => {
 
     const getActionIcon = (action) => {
         switch (action) {
-            case 'FORWARD_DISPATCH': return '🚛';
-            case 'RETURN': return '🔄';
-            case 'HOLD': return '⏸️';
-            default: return '❓';
+            case 'FORWARD_DISPATCH': return 'FD';
+            case 'RETURN': return 'RT';
+            case 'HOLD': return 'HL';
+            default: return '?';
         }
     };
 
@@ -153,7 +153,7 @@ const FleetIntelligence = () => {
                         <div className="fi-loading">Loading recommendations...</div>
                     ) : recommendations.length === 0 ? (
                         <div className="fi-empty">
-                            <span className="fi-empty-icon">📋</span>
+                            <span className="fi-empty-icon">--</span>
                             <p>No {statusFilter.toLowerCase()} recommendations</p>
                         </div>
                     ) : (
@@ -206,7 +206,7 @@ const FleetIntelligence = () => {
 
                                             {rec.ai_summary && (
                                                 <div className="fi-ai-summary">
-                                                    <h4>🤖 AI Explanation</h4>
+                                                    <h4>AI Explanation</h4>
                                                     <pre>{rec.ai_summary}</pre>
                                                 </div>
                                             )}
@@ -228,7 +228,7 @@ const FleetIntelligence = () => {
                                                         onClick={() => requestAiExplanation(rec.id)}
                                                         disabled={aiLoadingId === rec.id}
                                                     >
-                                                        {aiLoadingId === rec.id ? '🤖 Loading...' : '🤖 Get AI Explanation'}
+                                                        {aiLoadingId === rec.id ? 'Loading...' : 'Get AI Explanation'}
                                                     </button>
                                                 )}
                                             </div>

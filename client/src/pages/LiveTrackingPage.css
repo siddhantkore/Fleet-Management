@@ -15,7 +15,34 @@
 .live-tracking-container h1 {
     font-size: 1.875rem;
     color: #0f172a;
+    margin: 0;
+}
+
+.tracking-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
     margin-bottom: 1.5rem;
+}
+
+.back-to-dashboard {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #475569;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+.back-to-dashboard:hover {
+    background: #e2e8f0;
+    color: #1e293b;
 }
 
 .map-wrapper {

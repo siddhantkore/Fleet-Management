@@ -1,0 +1,83 @@
+.vehicle-management { display: flex; flex-direction: column; gap: 16px; }
+
+.vm-stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+}
+
+.vm-stat-card {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.vm-stat-num { font-size: 1.8rem; font-weight: 700; color: #1e293b; }
+.vm-stat-num.available { color: #22c55e; }
+.vm-stat-num.assigned { color: #f59e0b; }
+.vm-stat-num.on-trip { color: #3b82f6; }
+.vm-stat-label { font-size: 0.8rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; }
+
+.vm-id-cell { display: flex; flex-direction: column; }
+.vm-plate { font-size: 0.75rem; color: #94a3b8; font-family: monospace; }
+
+.vm-type-badge {
+    display: inline-block;
+    background: #f1f5f9;
+    color: #475569;
+    padding: 3px 10px;
+    border-radius: 10px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.vm-fuel-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.vm-fuel-badge.diesel { background: #fef3c7; color: #92400e; }
+.vm-fuel-badge.petrol { background: #dbeafe; color: #1e40af; }
+.vm-fuel-badge.cng { background: #dcfce7; color: #166534; }
+.vm-fuel-badge.electric { background: #f0fdf4; color: #15803d; }
+
+.vm-status-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 6px;
+}
+
+.vm-cargo-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 4px;
+}
+
+.vm-chip {
+    padding: 5px 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    background: #fafafa;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.vm-chip:hover { border-color: #3b82f6; }
+.vm-chip.active { background: #eff6ff; border-color: #3b82f6; color: #2563eb; font-weight: 600; }
+
+.no-data { text-align: center; color: #94a3b8; padding: 30px; }
+
+@media (max-width: 768px) {
+    .vm-stats-row { grid-template-columns: repeat(2, 1fr); }
+}

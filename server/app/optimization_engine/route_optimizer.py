@@ -93,9 +93,58 @@ def _fetch_ors_alternatives(
                 logger.warning(f"ORS returned status {response.status}")
                 return None
             data = json.loads(response.read().decode("utf-8"))
-            return data.get("routes", [])
+            routes = data.get("routes", [])
+            if routes:
+                return routes
     except (HTTPError, URLError, TimeoutError, ValueError, OSError, json.JSONDecodeError) as exc:
         logger.warning(f"ORS alternative routes request failed: {exc}")
+
+    # Fallback: try single route (no alternatives) — works for longer distances
+    logger.info("Falling back to single ORS route (no alternatives)")
+    return _fetch_ors_single(start, end)
+
+
+def _fetch_ors_single(
+    start: LocationPoint,
+    end: LocationPoint,
+) -> list[dict] | None:
+    """Fetch a single route from ORS (no alternatives). Used as fallback."""
+    if not OPENROUTES_API_KEY:
+        return None
+
+    url = f"{OPENROUTES_BASE_URL}/v2/directions/{OPENROUTES_PROFILE}/json"
+    payload = json.dumps(
+        {
+            "coordinates": [
+                [start.longitude, start.latitude],
+                [end.longitude, end.latitude],
+            ],
+            "geometry": True,
+            "instructions": False,
+            "elevation": True,
+        }
+    ).encode("utf-8")
+
+    req = Request(
+        url,
+        data=payload,
+        method="POST",
+        headers={
+            "Authorization": OPENROUTES_API_KEY,
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+        },
+    )
+
+    try:
+        with urlopen(req, timeout=OPENROUTES_TIMEOUT_SECONDS + 4) as response:
+            if response.status != 200:
+                logger.warning(f"ORS single-route returned status {response.status}")
+                return None
+            data = json.loads(response.read().decode("utf-8"))
+            return data.get("routes", []) or None
+    except (HTTPError, URLError, TimeoutError, ValueError, OSError, json.JSONDecodeError) as exc:
+        logger.warning(f"ORS single route request failed: {exc}")
         return None
 
 
@@ -110,8 +159,9 @@ def _decode_ors_geometry(route_data: dict) -> list[list[float]]:
         return geometry
 
     # Handle encoded polyline format
+    # ORS with elevation=true uses 3D encoded polyline (lon, lat, alt)
     if isinstance(geometry, str):
-        return _decode_polyline(geometry)
+        return _decode_polyline(geometry, dimensions=3)
 
     # Handle GeoJSON-style geometry
     if isinstance(geometry, dict):
@@ -121,18 +171,30 @@ def _decode_ors_geometry(route_data: dict) -> list[list[float]]:
     return []
 
 
-def _decode_polyline(encoded: str, precision: int = 5) -> list[list[float]]:
-    """Decode a Google-style encoded polyline string."""
+def _decode_polyline(encoded: str, precision: int = 5, dimensions: int = 3) -> list[list[float]]:
+    """Decode an encoded polyline string.
+
+    ORS with elevation=true encodes 3 dimensions (lat, lon, altitude).
+    We decode all dimensions but only return [lon, lat] for mapping.
+    """
+    if not encoded:
+        return []
+
     inv = 1.0 / (10**precision)
     decoded = []
-    previous = [0, 0]
+    previous = [0] * dimensions
     i = 0
+    length = len(encoded)
 
-    while i < len(encoded):
-        for dim in range(2):
+    while i < length:
+        point_values = []
+        for dim in range(dimensions):
             shift = 0
             result = 0
             while True:
+                if i >= length:
+                    # Truncated data — return what we have so far
+                    return decoded if decoded else []
                 char_code = ord(encoded[i]) - 63
                 i += 1
                 result |= (char_code & 0x1F) << shift
@@ -143,9 +205,11 @@ def _decode_polyline(encoded: str, precision: int = 5) -> list[list[float]]:
                 result = ~result
             result >>= 1
             previous[dim] += result
+            point_values.append(previous[dim] * inv)
 
-        # ORS returns [lon, lat] order
-        decoded.append([previous[1] * inv, previous[0] * inv])
+        # ORS encoded order is [lat, lon, alt] — we return [lon, lat] for mapping
+        if len(point_values) >= 2:
+            decoded.append([point_values[1], point_values[0]])
 
     return decoded
 
