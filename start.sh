@@ -28,11 +28,10 @@ if [ ! -f "docker-compose.yml" ]; then
 fi
 
 echo "📦 Building and starting services..."
-docker-compose up --build
 
 echo ""
 echo "=================================="
-echo "✅ Services are running!"
+echo "✅ Services will run in the background!"
 echo "=================================="
 echo ""
 echo "📍 Frontend: http://localhost:5173"
@@ -46,5 +45,8 @@ echo "   2. Click 'Contact Us' to test the form"
 echo "   3. Submit a contact message"
 echo "   4. Check backend logs to see the submission"
 echo ""
-echo "⚠️  To stop services: Press Ctrl+C"
+echo "⚠️  To stop services: Press Ctrl+C (stops logs), then run 'docker-compose down'"
 echo "=================================="
+
+docker-compose up --build -d
+docker-compose logs -f

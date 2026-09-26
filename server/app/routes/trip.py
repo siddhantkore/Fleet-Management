@@ -1,15 +1,17 @@
 import logging
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.auth import get_current_user
 from app.database import get_db
 from app.models.driver import Driver
 from app.models.trip import Trip
+from app.models.location import Location
 from app.models.user import User
 from app.models.vehicle import Vehicle
 from app.optimization import optimize_trip
@@ -42,6 +44,37 @@ def schedule_trip(
     if error:
         raise HTTPException(status_code=400, detail=error)
 
+    # Overlap check
+    est_duration_min = optimized_data.get("estimated_duration_min")
+    if request.start_time and est_duration_min:
+        new_start = request.start_time
+        new_end = new_start + timedelta(minutes=est_duration_min)
+        
+        existing_trips = db.query(Trip).filter(
+            or_(
+                Trip.vehicle_id == optimized_data["vehicle_id"],
+                Trip.driver_id == optimized_data["driver_id"]
+            ),
+            Trip.status.in_(["Planned", "In-Transit"])
+        ).all()
+        
+        for ext_trip in existing_trips:
+            if not ext_trip.start_time:
+                continue
+            ext_start = ext_trip.start_time
+            if ext_trip.end_time:
+                ext_end = ext_trip.end_time
+            else:
+                ext_dist = ext_trip.distance_km or 0
+                ext_dur = ext_trip.estimated_duration_min or ((ext_dist / 50.0) * 1.15 * 60.0 + 120.0)
+                ext_end = ext_start + timedelta(minutes=ext_dur)
+            
+            if not (ext_end <= new_start or ext_start >= new_end):
+                raise HTTPException(
+                    status_code=409, 
+                    detail=f"Scheduling conflict with existing trip {ext_trip.trip_id}"
+                )
+
     trip_id = f"TRP-{uuid.uuid4().hex[:8].upper()}"
 
     new_trip = Trip(
@@ -56,6 +89,7 @@ def schedule_trip(
         cargo_weight=request.cargo_weight,
         cargo_volume_cbm=request.cargo_volume_cbm or 0.0,
         cargo_type=request.cargo_type or "General",
+        estimated_duration_min=optimized_data.get("estimated_duration_min"),
         status="Planned",
         summary=optimized_data["summary"],
         route_data=optimized_data.get("route_data"),
@@ -155,6 +189,26 @@ def complete_trip(
 
     if driver:
         driver.current_status = "Available"
+        
+        # Update driver's live location to the destination
+        from app.models.tracking import LiveLocation
+        dest_loc = db.query(Location).filter(Location.location_id == trip.to_loc).first()
+        if dest_loc:
+            live_loc = db.query(LiveLocation).filter(LiveLocation.driver_id == driver.driver_id).first()
+            if live_loc:
+                live_loc.latitude = dest_loc.latitude
+                live_loc.longitude = dest_loc.longitude
+                live_loc.speed = 0
+                live_loc.activity_type = "stationary"
+            else:
+                live_loc = LiveLocation(
+                    driver_id=driver.driver_id,
+                    latitude=dest_loc.latitude,
+                    longitude=dest_loc.longitude,
+                    speed=0,
+                    activity_type="stationary",
+                )
+                db.add(live_loc)
 
     db.commit()
 

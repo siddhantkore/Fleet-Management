@@ -30,7 +30,19 @@ const CARGO_DENSITY = {
 };
 
 const SelectionMap = ({ plants, onPointSelect, selectedFrom, selectedTo, routes }) => {
-    useMapEvents({ click(e) { onPointSelect(e.latlng); } });
+    const map = useMapEvents({ click(e) { onPointSelect(e.latlng); } });
+
+    useEffect(() => {
+        if (routes && routes.length > 0) {
+            const allCoords = routes.flatMap(r =>
+                (r.geometry_coords || []).map(c => [c[1], c[0]])
+            ).filter(c => c[0] && c[1]);
+            if (allCoords.length > 1) {
+                map.fitBounds(allCoords, { padding: [40, 40], maxZoom: 13 });
+            }
+        }
+    }, [routes, map]);
+
     return (
         <>
             <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />

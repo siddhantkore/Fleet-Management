@@ -65,6 +65,69 @@ const ratingStars = (r) => {
 };
 
 // ─── Component ──────────────────────────────────────────────────
+const TripProgressPanel = ({ tripId }) => {
+    const [progress, setProgress] = useState(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchProgress = async () => {
+            try {
+                const res = await api.get(`/tracking/trip-progress/${tripId}`);
+                setProgress(res.data);
+            } catch (err) {
+                console.error('Error fetching trip progress:', err);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchProgress();
+        const interval = setInterval(fetchProgress, 10000); // refresh every 10s
+        return () => clearInterval(interval);
+    }, [tripId]);
+
+    if (loading) return <div className="progress-panel loading">Loading trip progress...</div>;
+    if (!progress) return null;
+
+    const progressPct = progress.progress_pct || 0;
+
+    return (
+        <div className="trip-progress-panel">
+            <h3>Trip Progress: {tripId}</h3>
+            <div className="progress-bar-container">
+                <div className="progress-bar" style={{ width: `${progressPct}%` }}>
+                    {progressPct.toFixed(1)}%
+                </div>
+            </div>
+            <div className="progress-stats">
+                <div className="progress-stat">
+                    <span className="stat-label">Completed</span>
+                    <span className="stat-value">{progress.completed_distance_km} km</span>
+                </div>
+                <div className="progress-stat">
+                    <span className="stat-label">Remaining</span>
+                    <span className="stat-value">{progress.remaining_distance_km} km</span>
+                </div>
+                <div className="progress-stat">
+                    <span className="stat-label">Total</span>
+                    <span className="stat-value">{progress.total_distance_km} km</span>
+                </div>
+                {progress.eta_minutes && (
+                    <div className="progress-stat">
+                        <span className="stat-label">ETA</span>
+                        <span className="stat-value">{progress.eta_minutes < 60 ? `${progress.eta_minutes.toFixed(0)} min` : `${(progress.eta_minutes / 60).toFixed(1)} hrs`}</span>
+                    </div>
+                )}
+                <div className="progress-stat">
+                    <span className="stat-label">Schedule</span>
+                    <span className={`stat-value ${progress.on_schedule === true ? 'on-time' : progress.on_schedule === false ? 'delayed' : ''}`}>
+                        {progress.on_schedule === true ? '✅ On Time' : progress.on_schedule === false ? '⚠️ Delayed' : '—'}
+                    </span>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 const MapBoundsAdjuster = ({ locations, plants }) => {
     const map = useMap();
     useEffect(() => {
@@ -188,7 +251,12 @@ const LiveTrackingPage = () => {
 
         ws.current.onclose = () => {
             console.log("WebSocket disconnected. Retrying in 5s...");
-            setTimeout(() => { }, 5000);
+            setTimeout(() => {
+                const reconnectWs = new WebSocket(WS_URL);
+                reconnectWs.onmessage = ws.current.onmessage;
+                reconnectWs.onclose = ws.current.onclose;
+                ws.current = reconnectWs;
+            }, 5000);
         };
 
         return () => {
@@ -348,6 +416,10 @@ const LiveTrackingPage = () => {
                         </ul>
                     </div>
                 </div>
+
+                {selectedTripId && (
+                    <TripProgressPanel tripId={selectedTripId} />
+                )}
             </div>
 
             {/* ─── Driver Detail Side Panel ─────────────────────────── */}

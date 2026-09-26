@@ -1,133 +1,49 @@
 # Fleet Management System
 
-![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
-![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=for-the-badge&logo=fastapi)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white)
-![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white)
-![License](https://img.shields.io/badge/License-MIT-green.svg?style=for-the-badge)
+A comprehensive, real-time fleet management and multi-plant optimization platform. 
 
-A comprehensive, centralized Vehicle Allocation and Logistics Optimization platform designed for multi-plant organizations. Features real-time tracking, automated vehicle assignment, compliance alerts, advanced analytics, and AI-powered fleet intelligence for operations.
+This system handles everything from trip scheduling and live GPS tracking to AI-powered insights and operations optimization using constraint programming (Google OR-Tools) and OpenRouteService.
 
 ## Key Features
 
-- **Vehicle & Driver Management**: Centralized fleet master data with real-time status tracking and CRUD operations.
-- **Live Tracking**: GPS integration with complete path visualization, telemetry (Speed, Heading, Altitude, Battery), and active trip routes.
-- **Trip Optimization**: Intelligent automated vehicle allocation considering load capacity, density, and driver availability.
-- **Route Analysis**: OpenRouteService (ORS) integration for optimal and alternative road geometries, including long-distance fallback mechanisms.
-- **Fleet Intelligence**: AI-powered repositioning recommendations based on demand, distance, and fleet availability across plants.
-- **Multi-Plant Support**: Seamless coordination across multiple locations with Nominatim geocoding and map-based search.
-- **Dashboard Analytics**: Comprehensive KPI tracking, performance insights, and notification centers.
-
-## Quick Start
-
-### Prerequisites
-- Docker & Docker Compose (recommended)
-- Or: Node.js 18+, Python 3.11+, PostgreSQL 16
-
-### Using Docker Compose
-```bash
-# Clone the repository and navigate into it
-cd Fleet-Management
-
-# Build and start the containers
-docker-compose up -d --build
-```
-
-- Frontend: http://localhost:5173
-- Backend API: http://localhost:8000
-- Database: localhost:5432
-
-For detailed setup instructions and environment variable configuration, see [SETUP_GUIDE.md](SETUP_GUIDE.md).
-
-## Project Structure
-
-```
-Fleet-Management/
-├── client/                      # React Frontend (Vite)
-│   ├── src/
-│   │   ├── components/          # Reusable UI components
-│   │   ├── pages/               # Page components (Dashboard, Tracking, etc.)
-│   │   ├── services/            # API integration
-│   │   └── context/             # App state contexts
-│   └── package.json
-│
-├── server/                      # FastAPI Backend (Python 3.11)
-│   ├── app/
-│   │   ├── llm/                 # LLM Integration (Groq/Ollama for AI summaries)
-│   │   ├── models/              # Database schema models
-│   │   ├── routes/              # API endpoints
-│   │   ├── schemas/             # Pydantic validation schemas
-│   │   └── optimization_engine/ # Routing and allocation logic (OR-Tools, ORS)
-│   └── requirements.txt
-│
-├── .github/workflows/           # GitHub Actions CI/CD
-│   └── consistency-checks.yml   # Automated quality checks
-│
-└── docs/                        # Documentation & Architecture
-```
+- **Multi-Plant Fleet Optimization**: Intelligent vehicle and driver assignment using Google OR-Tools CP-SAT solver, preventing schedule overlaps and minimizing deadhead costs.
+- **Real-Time GPS Tracking**: Live vehicle tracking over WebSockets, displaying progress against planned routes.
+- **Route Analysis**: OpenRouteService integration for generating and scoring multiple route alternatives (distance, elevation, fuel), augmented with AI-generated narrative summaries.
+- **Trip Management**: End-to-end trip lifecycle management, scheduling, and execution tracking.
+- **Fleet Intelligence**: Smart, post-trip vehicle repositioning recommendations (return vs reposition) based on predictive plant demand.
+- **Comprehensive Reports**: Filterable data grids for trips, vehicles, drivers, and costs, featuring one-click CSV exports.
+- **Resource Analysis**: Macro-level dashboard for managing and analyzing driver and vehicle distributions across various locations.
 
 ## Tech Stack
 
-| Layer | Technology |
-|-------|-----------|
-| **Frontend** | React 19, Vite, Leaflet (Maps) |
-| **Backend** | FastAPI, SQLAlchemy, PostGIS |
-| **Database** | PostgreSQL 16 + Geographic Extensions |
-| **Optimization** | Google OR-Tools, OpenRouteService (ORS) |
-| **AI/LLM** | Groq, Ollama (Local) |
-| **Deployment** | Docker, Docker Compose |
+- **Backend**: Python 3.11, FastAPI, SQLAlchemy (PostgreSQL)
+- **Frontend**: React 19, Vite, React Router v6, Leaflet/react-leaflet
+- **Algorithms**: Google OR-Tools (CP-SAT), Haversine heuristics
+- **Integrations**: OpenRouteService (Routing), Groq / Ollama (AI/LLMs)
+- **Infrastructure**: Docker, Docker Compose
 
-## Development
+## Quick Start (Docker)
 
-### Code Quality & Standards
+Ensure Docker and Docker Compose are installed.
 
-The project uses automated consistency checks:
-
-- **ESLint** - Frontend code style
-- **Black/isort** - Backend code formatting
-- **Flake8** - Python linting
-- **Docker validation** - Container configuration
-
-See [CODE_QUALITY.md](CODE_QUALITY.md) for quick reference and [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
-
-### Before Committing
-
-```bash
-# Frontend
-cd client
-npm run lint -- --fix
-
-# Backend
-cd server
-black app/
-isort app/
-flake8 app/
-```
-
-### GitHub Actions Workflow
-
-Automated checks run on every push and PR:
-
-1. **Frontend Lint & Build** - ESLint and build verification
-2. **Backend Checks** - Python formatting and linting
-3. **Dependency Security** - npm and pip vulnerability scans
-4. **Consistency Checks** - Import consistency, trailing whitespace
-5. **Docker Validation** - docker-compose and Dockerfile builds
-
-See [.github/workflows/README.md](.github/workflows/README.md) for details.
+1. Clone the repository
+2. Set up environment variables (see `SETUP_GUIDE.md`)
+3. Build and launch all services:
+   ```bash
+   docker-compose up --build
+   ```
+4. Access the application:
+   - Frontend: `http://localhost:5173`
+   - Backend API Docs: `http://localhost:8000/docs`
 
 ## Documentation
 
-- [SETUP_GUIDE.md](SETUP_GUIDE.md) - Detailed installation and configuration
-- [CONTRIBUTING.md](CONTRIBUTING.md) - Contributing guidelines
-- [CODE_QUALITY.md](CODE_QUALITY.md) - Quick reference for code standards
-- [TECHNICAL_DESIGN_DOCUMENT.md](docs/TECHNICAL_DESIGN_DOCUMENT.md) - Architecture details
-- [MULTI_PLANT_LOGISTICS.md](docs/MULTI_PLANT_LOGISTICS.md) - Multi-plant logistics overview
+For a deep dive into the architecture, database schemas, and API references, see the Developer Guide:
 
-## Version Control Best Practices
+👉 **[DEVELOPERS.md](DEVELOPERS.md)**
 
-1. Create feature branches: `git checkout -b feature/your-feature`
-2. Follow commit conventions: `feat:`, `fix:`, `docs:`, `style:`, `refactor:`
-3. Run code quality checks locally before pushing
-4. Create pull requests with clear descriptions
-5. Ensure all GitHub Actions checks pass before merging
+## Setup Guide
+
+For step-by-step instructions on setting up environment variables and running the system manually without Docker, see:
+
+👉 **[SETUP_GUIDE.md](SETUP_GUIDE.md)**

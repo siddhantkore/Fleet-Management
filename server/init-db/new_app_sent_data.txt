@@ -1,0 +1,39 @@
+Received JSON:
+{
+  "metadata": {
+    "device_id": "8d6600ac-11f1-44a1-a61f-6279fdd35ccb",
+    "user_id": "D002",
+    "session_id": "cbde9ff8-4314-4145-b6b4-11ed1432a2cc",
+    "schema_version": "1.2"
+  },
+  "timestamp": {
+    "captured_at": 1773250058863,
+    "sent_at": 1773251553510,
+    "timezone": "Asia/Kolkata"
+  },
+  "location": {
+    "coords": {
+      "lat": 16.9431033,
+      "lng": 74.4147417,
+      "alt": 514.5999755859375
+    },
+    "motion": {
+      "speed": 0,
+      "heading": 0,
+      "accuracy_h": 20,
+      "accuracy_v": 1
+    }
+  },
+  "context": {
+    "activity_type": "idle",
+    "battery_level": 0.8500000238418579,
+    "is_charging": false,
+    "network_type": "wifi"
+  },
+  "events": [
+    {
+      "type": "location_update",
+      "value": "idle"
+    }
+  ]
+}

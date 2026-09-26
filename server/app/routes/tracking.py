@@ -4,7 +4,7 @@ import logging
 from datetime import datetime, timezone
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect, Query
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -34,7 +34,8 @@ class ConnectionManager:
         )
 
     def disconnect(self, websocket: WebSocket):
-        self.active_connections.remove(websocket)
+        if websocket in self.active_connections:
+            self.active_connections.remove(websocket)
         logger.info(f"WebSocket disconnected. Total connections: {len(self.active_connections)}")
 
     async def broadcast(self, message: str):
@@ -42,11 +43,13 @@ class ConnectionManager:
         for connection in self.active_connections:
             try:
                 await connection.send_text(message)
-            except WebSocketDisconnect:
+            except (WebSocketDisconnect, Exception) as e:
+                logger.warning(f"Failed to send to WebSocket, removing connection: {e}")
                 disconnected.append(connection)
 
         for conn in disconnected:
-            self.active_connections.remove(conn)
+            if conn in self.active_connections:
+                self.active_connections.remove(conn)
 
 
 manager = ConnectionManager()
@@ -299,6 +302,230 @@ async def get_driver_detail(driver_id: str, db: Session = Depends(get_db)):
             else None
         ),
     }
+
+
+@router.get("/trip-progress/{trip_id}")
+async def get_trip_progress(trip_id: str, db: Session = Depends(get_db)):
+    """Get real-time progress for an active trip based on driver's current location."""
+    trip = db.query(Trip).filter(Trip.trip_id == trip_id).first()
+    if not trip:
+        raise HTTPException(status_code=404, detail="Trip not found")
+
+    # Get origin and destination coordinates
+    from app.models.location import Location
+    from app.optimization_engine.data_provider import haversine
+
+    origin = db.query(Location).filter(Location.location_id == trip.from_loc).first()
+    destination = db.query(Location).filter(Location.location_id == trip.to_loc).first()
+
+    if not origin or not destination:
+        return {"trip_id": trip_id, "error": "Origin or destination location not found"}
+
+    # Get driver's current location
+    live_loc = db.query(LiveLocation).filter(LiveLocation.driver_id == trip.driver_id).first()
+
+    if not live_loc:
+        return {
+            "trip_id": trip_id,
+            "status": trip.status,
+            "total_distance_km": trip.distance_km,
+            "completed_distance_km": 0,
+            "remaining_distance_km": trip.distance_km,
+            "progress_pct": 0,
+            "eta_minutes": None,
+            "on_schedule": None,
+            "driver_location": None,
+        }
+
+    # Calculate distances
+    distance_from_origin = haversine(
+        origin.latitude, origin.longitude,
+        live_loc.latitude, live_loc.longitude
+    )
+    distance_to_destination = haversine(
+        live_loc.latitude, live_loc.longitude,
+        destination.latitude, destination.longitude
+    )
+
+    # Estimate completed distance (capped at total trip distance)
+    completed_km = min(distance_from_origin, trip.distance_km)
+    remaining_km = max(0, trip.distance_km - completed_km)
+    progress_pct = round((completed_km / max(trip.distance_km, 0.1)) * 100, 1)
+
+    # ETA calculation based on current speed
+    eta_minutes = None
+    if live_loc.speed and live_loc.speed > 0.5:  # > 0.5 m/s (moving)
+        speed_kmh = live_loc.speed * 3.6
+        eta_minutes = round((remaining_km / speed_kmh) * 60, 1)
+
+    # On-schedule check
+    on_schedule = None
+    estimated_duration_min = trip.estimated_duration_min
+    if estimated_duration_min and trip.start_time:
+        from datetime import datetime, timezone
+        elapsed_min = (datetime.now(timezone.utc) - trip.start_time.replace(tzinfo=timezone.utc)).total_seconds() / 60
+        expected_progress_pct = min(100, (elapsed_min / estimated_duration_min) * 100)
+        # If actual progress is within 15% of expected, consider on-schedule
+        if progress_pct >= expected_progress_pct - 15:
+            on_schedule = True
+        else:
+            on_schedule = False
+
+    return {
+        "trip_id": trip_id,
+        "status": trip.status,
+        "total_distance_km": round(trip.distance_km, 2),
+        "completed_distance_km": round(completed_km, 2),
+        "remaining_distance_km": round(remaining_km, 2),
+        "progress_pct": min(progress_pct, 100),
+        "eta_minutes": eta_minutes,
+        "on_schedule": on_schedule,
+        "estimated_duration_min": estimated_duration_min,
+        "driver_location": {
+            "latitude": live_loc.latitude,
+            "longitude": live_loc.longitude,
+            "speed": live_loc.speed,
+            "heading": live_loc.heading,
+            "updated_at": live_loc.updated_at.isoformat() if live_loc.updated_at else None,
+        },
+    }
+
+
+@router.get("/resource-analysis")
+async def get_resource_analysis(db: Session = Depends(get_db)):
+    """Get comprehensive resource analysis: all drivers and vehicles with current vs home locations."""
+    from app.models.location import Location
+    from app.optimization_engine.data_provider import haversine
+
+    # Get all locations for lookup
+    locations = {loc.location_id: loc for loc in db.query(Location).all()}
+
+    # Get all drivers with their live locations
+    drivers = db.query(Driver).all()
+    live_locs = {ll.driver_id: ll for ll in db.query(LiveLocation).all()}
+
+    driver_data = []
+    for driver in drivers:
+        home_loc = locations.get(driver.home_plant_id)
+        live_loc = live_locs.get(driver.driver_id)
+
+        # Find active trip
+        active_trip = db.query(Trip).filter(
+            Trip.driver_id == driver.driver_id,
+            Trip.status.in_(["In-Transit", "Planned"])
+        ).first()
+
+        distance_from_home = None
+        if home_loc and live_loc:
+            distance_from_home = round(haversine(
+                home_loc.latitude, home_loc.longitude,
+                live_loc.latitude, live_loc.longitude
+            ), 2)
+
+        driver_data.append({
+            "driver_id": driver.driver_id,
+            "name": driver.name,
+            "phone": driver.phone,
+            "status": driver.status,
+            "current_status": driver.current_status,
+            "is_on_leave": driver.is_on_leave,
+            "rating": driver.rating,
+            "home_plant_id": driver.home_plant_id,
+            "home_plant_name": home_loc.name if home_loc else None,
+            "home_location": {"lat": home_loc.latitude, "lng": home_loc.longitude} if home_loc else None,
+            "current_location": {
+                "lat": live_loc.latitude,
+                "lng": live_loc.longitude,
+                "speed": live_loc.speed,
+                "updated_at": live_loc.updated_at.isoformat() if live_loc.updated_at else None,
+            } if live_loc else None,
+            "distance_from_home_km": distance_from_home,
+            "active_trip": {
+                "trip_id": active_trip.trip_id,
+                "from_loc": active_trip.from_loc,
+                "to_loc": active_trip.to_loc,
+                "status": active_trip.status,
+            } if active_trip else None,
+        })
+
+    # Get all vehicles with their plant locations
+    vehicles = db.query(Vehicle).all()
+    vehicle_data = []
+    for vehicle in vehicles:
+        plant_loc = locations.get(vehicle.plant_loc_id)
+
+        active_trip = db.query(Trip).filter(
+            Trip.vehicle_id == vehicle.vehicle_id,
+            Trip.status.in_(["In-Transit", "Planned"])
+        ).first()
+
+        vehicle_data.append({
+            "vehicle_id": vehicle.vehicle_id,
+            "type": vehicle.type,
+            "license_plate": vehicle.license_plate,
+            "current_status": vehicle.current_status,
+            "fuel_type": vehicle.fuel_type,
+            "capacity_kg": vehicle.capacity_kg,
+            "odometer_km": vehicle.odometer_km,
+            "plant_loc_id": vehicle.plant_loc_id,
+            "plant_name": plant_loc.name if plant_loc else None,
+            "plant_location": {"lat": plant_loc.latitude, "lng": plant_loc.longitude} if plant_loc else None,
+            "active_trip": {
+                "trip_id": active_trip.trip_id,
+                "from_loc": active_trip.from_loc,
+                "to_loc": active_trip.to_loc,
+                "status": active_trip.status,
+            } if active_trip else None,
+        })
+
+    return {
+        "drivers": driver_data,
+        "vehicles": vehicle_data,
+        "summary": {
+            "total_drivers": len(drivers),
+            "available_drivers": sum(1 for d in drivers if d.current_status == "Available"),
+            "on_trip_drivers": sum(1 for d in drivers if d.current_status == "On-Trip"),
+            "total_vehicles": len(vehicles),
+            "available_vehicles": sum(1 for v in vehicles if v.current_status == "Available"),
+            "on_trip_vehicles": sum(1 for v in vehicles if v.current_status in ["On-Trip", "Assigned"]),
+        }
+    }
+
+
+@router.put("/resource/driver/{driver_id}/location")
+async def update_driver_location(
+    driver_id: str,
+    lat: float = Query(...),
+    lng: float = Query(...),
+    db: Session = Depends(get_db),
+):
+    """Admin endpoint to manually update a driver's current location (e.g., when driver returns without a trip)."""
+    driver = db.query(Driver).filter(Driver.driver_id == driver_id).first()
+    if not driver:
+        raise HTTPException(status_code=404, detail="Driver not found")
+
+    live_loc = db.query(LiveLocation).filter(LiveLocation.driver_id == driver_id).first()
+    if live_loc:
+        live_loc.latitude = lat
+        live_loc.longitude = lng
+        live_loc.speed = 0
+        live_loc.activity_type = "stationary"
+    else:
+        live_loc = LiveLocation(
+            driver_id=driver_id,
+            latitude=lat,
+            longitude=lng,
+            speed=0,
+            activity_type="stationary",
+        )
+        db.add(live_loc)
+
+    # Update driver status to Available if they were on trip
+    if driver.current_status in ["On-Trip", "Assigned"]:
+        driver.current_status = "Available"
+
+    db.commit()
+    return {"status": "ok", "driver_id": driver_id, "message": "Location updated successfully"}
 
 
 @router.websocket("/ws")

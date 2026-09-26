@@ -521,3 +521,73 @@
         grid-template-columns: 1fr;
     }
 }
+/* Trip Progress Panel */
+.trip-progress-panel {
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    margin-top: 16px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+.trip-progress-panel h3 {
+    color: #1e293b;
+    margin: 0 0 16px 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+.progress-bar-container {
+    background: #e2e8f0;
+    border-radius: 8px;
+    height: 28px;
+    overflow: hidden;
+    margin-bottom: 16px;
+}
+.progress-bar {
+    background: linear-gradient(90deg, #22c55e, #16a34a);
+    height: 100%;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 600;
+    font-size: 0.85rem;
+    min-width: 40px;
+    transition: width 0.5s ease;
+}
+.progress-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 12px;
+}
+.progress-stat {
+    background: #f8fafc;
+    border-radius: 8px;
+    padding: 12px;
+    text-align: center;
+    border: 1px solid #e2e8f0;
+}
+.progress-stat .stat-label {
+    display: block;
+    color: #64748b;
+    font-size: 0.75rem;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    font-weight: 600;
+}
+.progress-stat .stat-value {
+    display: block;
+    color: #1e293b;
+    font-weight: 600;
+    font-size: 1rem;
+}
+.progress-stat .stat-value.on-time { color: #16a34a; }
+.progress-stat .stat-value.delayed { color: #b45309; }
+.progress-panel.loading {
+    color: #64748b;
+    text-align: center;
+    padding: 20px;
+}
+
