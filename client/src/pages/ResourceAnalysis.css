@@ -110,6 +110,19 @@
   background: #fafbfc;
 }
 
+.location-name {
+  font-weight: 500;
+  color: #1e293b;
+  display: block;
+}
+
+.location-coords {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  display: block;
+  margin-top: 2px;
+}
+
 /* Row coloring */
 .status-available { border-left: 4px solid #22c55e; }
 .status-on-trip { border-left: 4px solid #f59e0b; }

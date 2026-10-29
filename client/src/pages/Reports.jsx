@@ -14,7 +14,7 @@ const TABS = [
 const Reports = () => {
     const [activeTab, setActiveTab] = useState('trips');
     const [data, setData] = useState(null);
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [exporting, setExporting] = useState(false);
 
@@ -35,18 +35,14 @@ const Reports = () => {
         fetchReferenceData();
     }, []);
 
-    useEffect(() => {
-        fetchReportData();
-    }, [activeTab]);
-
     const fetchReferenceData = async () => {
         try {
             const [vRes, dRes] = await Promise.all([
                 api.get('/vehicles'),
                 api.get('/drivers')
             ]);
-            setVehicles(vRes.data);
-            setDrivers(dRes.data);
+            setVehicles(vRes.data || []);
+            setDrivers(dRes.data || []);
         } catch (err) {
             console.error("Error fetching reference data", err);
         }
@@ -56,7 +52,6 @@ const Reports = () => {
         setLoading(true);
         setError(null);
         try {
-            // Clean up empty filters
             const params = Object.fromEntries(
                 Object.entries(filters).filter(([_, v]) => v !== '')
             );
@@ -70,6 +65,49 @@ const Reports = () => {
         } finally {
             setLoading(false);
         }
+    };
+
+    useEffect(() => {
+        let ignore = false;
+
+        const fetchTabReport = async () => {
+            setLoading(true);
+            setError(null);
+            try {
+                const params = Object.fromEntries(
+                    Object.entries(filters).filter(([_, v]) => v !== '')
+                );
+
+                const response = await api.get(`/reports/${activeTab}`, { params });
+                if (!ignore) {
+                    setData(response.data);
+                }
+            } catch (err) {
+                console.error("Error fetching report data", err);
+                if (!ignore) {
+                    setError("Failed to load report data. Please try again.");
+                    setData(null);
+                }
+            } finally {
+                if (!ignore) {
+                    setLoading(false);
+                }
+            }
+        };
+
+        fetchTabReport();
+
+        return () => {
+            ignore = true;
+        };
+    }, [activeTab]);
+
+    const handleTabChange = (tabId) => {
+        if (tabId === activeTab) return;
+        setData(null);
+        setError(null);
+        setLoading(true);
+        setActiveTab(tabId);
     };
 
     const handleFilterChange = (e) => {
@@ -89,7 +127,6 @@ const Reports = () => {
             vehicle_id: '',
             driver_id: ''
         });
-        // We need to wait for state to update before fetching, so we setTimeout
         setTimeout(fetchReportData, 0);
     };
 
@@ -105,7 +142,6 @@ const Reports = () => {
                 responseType: 'blob'
             });
 
-            // Create download link
             const url = window.URL.createObjectURL(new Blob([response.data]));
             const link = document.createElement('a');
             link.href = url;
@@ -114,7 +150,6 @@ const Reports = () => {
             document.body.appendChild(link);
             link.click();
             link.parentNode.removeChild(link);
-            
         } catch (err) {
             console.error("Error exporting data", err);
             alert("Failed to export data");
@@ -124,26 +159,28 @@ const Reports = () => {
     };
 
     const renderTripsTab = () => {
-        if (!data) return null;
-        
+        if (!data || !data.records || !data.summary) return null;
+
+        const { summary, records } = data;
+
         return (
             <>
                 <div className="stats-grid">
                     <div className="stat-card">
                         <span className="stat-title">Total Trips</span>
-                        <span className="stat-value">{data.summary.total_trips}</span>
+                        <span className="stat-value">{summary.total_trips ?? 0}</span>
                     </div>
                     <div className="stat-card">
                         <span className="stat-title">Total Distance (km)</span>
-                        <span className="stat-value">{data.summary.total_distance_km.toFixed(2)}</span>
+                        <span className="stat-value">{(summary.total_distance_km ?? 0).toFixed(2)}</span>
                     </div>
                     <div className="stat-card">
                         <span className="stat-title">Completed Trips</span>
-                        <span className="stat-value">{data.summary.completed_count}</span>
+                        <span className="stat-value">{summary.completed_count ?? 0}</span>
                     </div>
                     <div className="stat-card">
                         <span className="stat-title">Total Cargo (kg)</span>
-                        <span className="stat-value">{data.summary.total_cargo_weight_kg.toFixed(2)}</span>
+                        <span className="stat-value">{(summary.total_cargo_weight_kg ?? 0).toFixed(2)}</span>
                     </div>
                 </div>
 
@@ -161,24 +198,24 @@ const Reports = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {data.records.map((trip, idx) => (
-                                <tr key={idx}>
+                            {records.map((trip, idx) => (
+                                <tr key={trip.id || idx}>
                                     <td>{trip.id}</td>
                                     <td>{trip.from_location}</td>
                                     <td>{trip.to_location}</td>
                                     <td>{trip.start_time ? new Date(trip.start_time).toLocaleString() : 'N/A'}</td>
-                                    <td>{trip.distance_km?.toFixed(2) || '0.00'}</td>
-                                    <td>{trip.cargo_type} ({trip.cargo_weight_kg}kg)</td>
+                                    <td>{trip.distance_km !== null && trip.distance_km !== undefined ? Number(trip.distance_km).toFixed(2) : '0.00'}</td>
+                                    <td>{trip.cargo_type || 'General'} ({trip.cargo_weight_kg ?? 0}kg)</td>
                                     <td>
-                                        <span className={`status-badge status-${trip.status.toLowerCase().replace('-', '')}`}>
+                                        <span className={`status-badge status-${(trip.status || 'planned').toLowerCase().replace('-', '')}`}>
                                             {trip.status}
                                         </span>
                                     </td>
                                 </tr>
                             ))}
-                            {data.records.length === 0 && (
+                            {records.length === 0 && (
                                 <tr>
-                                    <td colSpan="7" style={{textAlign: 'center'}}>No trips found for the given criteria.</td>
+                                    <td colSpan="7" style={{ textAlign: 'center', padding: '2rem' }}>No trips found for the given criteria.</td>
                                 </tr>
                             )}
                         </tbody>
@@ -189,7 +226,7 @@ const Reports = () => {
     };
 
     const renderVehiclesTab = () => {
-        if (!data) return null;
+        if (!Array.isArray(data)) return null;
 
         return (
             <div className="table-container">
@@ -208,17 +245,22 @@ const Reports = () => {
                     </thead>
                     <tbody>
                         {data.map((v, idx) => (
-                            <tr key={idx}>
+                            <tr key={v.vehicle_id || idx}>
                                 <td>{v.vehicle_id}</td>
                                 <td>{v.license_plate}</td>
                                 <td>{v.type}</td>
-                                <td>{v.total_trips}</td>
-                                <td>{v.total_distance_km.toFixed(2)}</td>
-                                <td>${v.total_cost.toFixed(2)}</td>
-                                <td>{v.utilization_pct}%</td>
-                                <td>{v.current_status}</td>
+                                <td>{v.total_trips ?? 0}</td>
+                                <td>{v.total_distance_km !== null && v.total_distance_km !== undefined ? Number(v.total_distance_km).toFixed(2) : '0.00'}</td>
+                                <td>${(v.total_cost ?? 0).toFixed(2)}</td>
+                                <td>{v.utilization_pct ?? 0}%</td>
+                                <td>{v.current_status || 'Available'}</td>
                             </tr>
                         ))}
+                        {data.length === 0 && (
+                            <tr>
+                                <td colSpan="8" style={{ textAlign: 'center', padding: '2rem' }}>No vehicle data available.</td>
+                            </tr>
+                        )}
                     </tbody>
                 </table>
             </div>
@@ -226,7 +268,7 @@ const Reports = () => {
     };
 
     const renderDriversTab = () => {
-        if (!data) return null;
+        if (!Array.isArray(data)) return null;
 
         return (
             <div className="table-container">
@@ -245,17 +287,22 @@ const Reports = () => {
                     </thead>
                     <tbody>
                         {data.map((d, idx) => (
-                            <tr key={idx}>
+                            <tr key={d.driver_id || idx}>
                                 <td>{d.driver_id}</td>
                                 <td>{d.name}</td>
-                                <td>{d.total_trips}</td>
-                                <td>{d.total_distance_km.toFixed(2)}</td>
-                                <td>{d.completed_trips}</td>
-                                <td>{d.on_time_percentage.toFixed(1)}%</td>
-                                <td>{d.rating} ⭐</td>
-                                <td>{d.current_status}</td>
+                                <td>{d.total_trips ?? 0}</td>
+                                <td>{d.total_distance_km !== null && d.total_distance_km !== undefined ? Number(d.total_distance_km).toFixed(2) : '0.00'}</td>
+                                <td>{d.completed_trips ?? 0}</td>
+                                <td>{d.on_time_percentage !== null && d.on_time_percentage !== undefined ? Number(d.on_time_percentage).toFixed(1) : '0.0'}%</td>
+                                <td>{d.rating ?? 5.0} ⭐</td>
+                                <td>{d.current_status || 'Available'}</td>
                             </tr>
                         ))}
+                        {data.length === 0 && (
+                            <tr>
+                                <td colSpan="8" style={{ textAlign: 'center', padding: '2rem' }}>No driver data available.</td>
+                            </tr>
+                        )}
                     </tbody>
                 </table>
             </div>
@@ -263,7 +310,7 @@ const Reports = () => {
     };
 
     const renderPlantsTab = () => {
-        if (!data) return null;
+        if (!Array.isArray(data)) return null;
 
         return (
             <div className="table-container">
@@ -280,15 +327,20 @@ const Reports = () => {
                     </thead>
                     <tbody>
                         {data.map((p, idx) => (
-                            <tr key={idx}>
+                            <tr key={p.location_id || idx}>
                                 <td>{p.location_id}</td>
                                 <td>{p.name}</td>
-                                <td>{p.inbound_trips}</td>
-                                <td>{p.outbound_trips}</td>
-                                <td>{p.total_cargo_handled_kg.toFixed(2)}</td>
+                                <td>{p.inbound_trips ?? 0}</td>
+                                <td>{p.outbound_trips ?? 0}</td>
+                                <td>{(p.total_cargo_handled_kg ?? 0).toFixed(2)}</td>
                                 <td>{p.busiest_route || 'N/A'}</td>
                             </tr>
                         ))}
+                        {data.length === 0 && (
+                            <tr>
+                                <td colSpan="6" style={{ textAlign: 'center', padding: '2rem' }}>No plant data available.</td>
+                            </tr>
+                        )}
                     </tbody>
                 </table>
             </div>
@@ -296,22 +348,22 @@ const Reports = () => {
     };
 
     const renderCostsTab = () => {
-        if (!data) return null;
+        if (!data || typeof data.total_cost !== 'number') return null;
 
         return (
             <>
                 <div className="stats-grid">
                     <div className="stat-card">
                         <span className="stat-title">Total Cost</span>
-                        <span className="stat-value">${data.total_cost.toFixed(2)}</span>
+                        <span className="stat-value">${(data.total_cost ?? 0).toFixed(2)}</span>
                     </div>
                     <div className="stat-card">
                         <span className="stat-title">Avg Cost / Trip</span>
-                        <span className="stat-value">${data.avg_cost_per_trip.toFixed(2)}</span>
+                        <span className="stat-value">${(data.avg_cost_per_trip ?? 0).toFixed(2)}</span>
                     </div>
                     <div className="stat-card">
                         <span className="stat-title">Avg Cost / KM</span>
-                        <span className="stat-value">${data.avg_cost_per_km.toFixed(2)}</span>
+                        <span className="stat-value">${(data.avg_cost_per_km ?? 0).toFixed(2)}</span>
                     </div>
                 </div>
 
@@ -325,12 +377,17 @@ const Reports = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {Object.entries(data.cost_by_vehicle_type).map(([type, cost], idx) => (
+                            {Object.entries(data.cost_by_vehicle_type || {}).map(([type, cost], idx) => (
                                 <tr key={idx}>
                                     <td>{type}</td>
-                                    <td>${cost.toFixed(2)}</td>
+                                    <td>${(cost ?? 0).toFixed(2)}</td>
                                 </tr>
                             ))}
+                            {Object.keys(data.cost_by_vehicle_type || {}).length === 0 && (
+                                <tr>
+                                    <td colSpan="2" style={{ textAlign: 'center', padding: '1rem' }}>No cost data by vehicle type available.</td>
+                                </tr>
+                            )}
                         </tbody>
                     </table>
                 </div>
@@ -347,17 +404,17 @@ const Reports = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {data.cost_by_route.map((route, idx) => (
+                            {(data.cost_by_route || []).map((route, idx) => (
                                 <tr key={idx}>
                                     <td>{route.from_loc}</td>
                                     <td>{route.to_loc}</td>
-                                    <td>{route.trip_count}</td>
-                                    <td>${route.avg_cost.toFixed(2)}</td>
+                                    <td>{route.trip_count ?? 0}</td>
+                                    <td>${(route.avg_cost ?? 0).toFixed(2)}</td>
                                 </tr>
                             ))}
-                            {data.cost_by_route.length === 0 && (
+                            {(!data.cost_by_route || data.cost_by_route.length === 0) && (
                                 <tr>
-                                    <td colSpan="4" style={{textAlign: 'center'}}>No route cost data available.</td>
+                                    <td colSpan="4" style={{ textAlign: 'center', padding: '1rem' }}>No route cost data available.</td>
                                 </tr>
                             )}
                         </tbody>
@@ -388,13 +445,25 @@ const Reports = () => {
             );
         }
 
-        switch (activeTab) {
-            case 'trips': return renderTripsTab();
-            case 'vehicles': return renderVehiclesTab();
-            case 'drivers': return renderDriversTab();
-            case 'plants': return renderPlantsTab();
-            case 'costs': return renderCostsTab();
-            default: return null;
+        try {
+            switch (activeTab) {
+                case 'trips': return renderTripsTab();
+                case 'vehicles': return renderVehiclesTab();
+                case 'drivers': return renderDriversTab();
+                case 'plants': return renderPlantsTab();
+                case 'costs': return renderCostsTab();
+                default: return null;
+            }
+        } catch (renderErr) {
+            console.error("Render error in Reports tab:", renderErr);
+            return (
+                <div className="error-state">
+                    <p>Error displaying report data. Please try again.</p>
+                    <button className="btn btn-primary" style={{ marginTop: '1rem' }} onClick={fetchReportData}>
+                        Retry
+                    </button>
+                </div>
+            );
         }
     };
 
@@ -417,7 +486,7 @@ const Reports = () => {
                     <button
                         key={tab.id}
                         className={`tab-btn ${activeTab === tab.id ? 'active' : ''}`}
-                        onClick={() => setActiveTab(tab.id)}
+                        onClick={() => handleTabChange(tab.id)}
                     >
                         {tab.icon}
                         <span style={{ marginLeft: '0.5rem' }}>{tab.label}</span>
@@ -459,7 +528,9 @@ const Reports = () => {
                             >
                                 <option value="">All Vehicles</option>
                                 {vehicles.map(v => (
-                                    <option key={v.id} value={v.id}>{v.license_plate}</option>
+                                    <option key={v.vehicle_id} value={v.vehicle_id}>
+                                        {v.license_plate} ({v.type})
+                                    </option>
                                 ))}
                             </select>
                         </div>
@@ -476,7 +547,9 @@ const Reports = () => {
                             >
                                 <option value="">All Drivers</option>
                                 {drivers.map(d => (
-                                    <option key={d.id} value={d.id}>{d.name}</option>
+                                    <option key={d.driver_id} value={d.driver_id}>
+                                        {d.name}
+                                    </option>
                                 ))}
                             </select>
                         </div>

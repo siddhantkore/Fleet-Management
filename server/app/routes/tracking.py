@@ -415,11 +415,72 @@ async def get_resource_analysis(db: Session = Depends(get_db)):
             Trip.status.in_(["In-Transit", "Planned"])
         ).first()
 
+        # Find last completed trip if no active trip
+        last_trip = None
+        if not active_trip:
+            last_trip = db.query(Trip).filter(
+                Trip.driver_id == driver.driver_id,
+                Trip.status == "Completed"
+            ).order_by(Trip.end_time.desc()).first()
+
+        # Determine current location / plant name
+        current_location_name = None
+        current_coords = None
+
+        if active_trip and active_trip.status == "In-Transit":
+            to_plant = locations.get(active_trip.to_loc)
+            to_name = to_plant.name if to_plant else active_trip.to_loc
+            current_location_name = f"In-Transit to {to_name}"
+            if live_loc:
+                current_coords = {"lat": live_loc.latitude, "lng": live_loc.longitude}
+        elif active_trip and active_trip.status == "Planned":
+            from_plant = locations.get(active_trip.from_loc)
+            from_name = from_plant.name if from_plant else active_trip.from_loc
+            current_location_name = f"{from_name} (Planned)"
+            if from_plant:
+                current_coords = {"lat": from_plant.latitude, "lng": from_plant.longitude}
+        elif live_loc and live_loc.latitude is not None and live_loc.longitude is not None:
+            # Find closest plant by haversine distance
+            closest_loc = None
+            min_dist = float('inf')
+            for loc in locations.values():
+                d = haversine(loc.latitude, loc.longitude, live_loc.latitude, live_loc.longitude)
+                if d < min_dist:
+                    min_dist = d
+                    closest_loc = loc
+
+            if closest_loc and min_dist <= 25.0:
+                current_location_name = closest_loc.name
+            elif closest_loc:
+                current_location_name = f"Near {closest_loc.name} (~{round(min_dist, 1)} km)"
+            elif last_trip and last_trip.to_loc in locations:
+                current_location_name = locations[last_trip.to_loc].name
+            elif home_loc:
+                current_location_name = home_loc.name
+            else:
+                current_location_name = "Unknown"
+
+            current_coords = {
+                "lat": live_loc.latitude,
+                "lng": live_loc.longitude,
+                "speed": live_loc.speed,
+                "updated_at": live_loc.updated_at.isoformat() if live_loc.updated_at else None,
+            }
+        elif last_trip and last_trip.to_loc in locations:
+            dest_loc = locations[last_trip.to_loc]
+            current_location_name = dest_loc.name
+            current_coords = {"lat": dest_loc.latitude, "lng": dest_loc.longitude}
+        elif home_loc:
+            current_location_name = home_loc.name
+            current_coords = {"lat": home_loc.latitude, "lng": home_loc.longitude}
+        else:
+            current_location_name = "Unknown"
+
         distance_from_home = None
-        if home_loc and live_loc:
+        if home_loc and current_coords and current_coords.get("lat") is not None and current_coords.get("lng") is not None:
             distance_from_home = round(haversine(
                 home_loc.latitude, home_loc.longitude,
-                live_loc.latitude, live_loc.longitude
+                current_coords["lat"], current_coords["lng"]
             ), 2)
 
         driver_data.append({
@@ -432,13 +493,9 @@ async def get_resource_analysis(db: Session = Depends(get_db)):
             "rating": driver.rating,
             "home_plant_id": driver.home_plant_id,
             "home_plant_name": home_loc.name if home_loc else None,
+            "current_location_name": current_location_name,
             "home_location": {"lat": home_loc.latitude, "lng": home_loc.longitude} if home_loc else None,
-            "current_location": {
-                "lat": live_loc.latitude,
-                "lng": live_loc.longitude,
-                "speed": live_loc.speed,
-                "updated_at": live_loc.updated_at.isoformat() if live_loc.updated_at else None,
-            } if live_loc else None,
+            "current_location": current_coords,
             "distance_from_home_km": distance_from_home,
             "active_trip": {
                 "trip_id": active_trip.trip_id,
@@ -459,6 +516,28 @@ async def get_resource_analysis(db: Session = Depends(get_db)):
             Trip.status.in_(["In-Transit", "Planned"])
         ).first()
 
+        # Find earliest trip to identify initial base plant if different
+        first_trip = db.query(Trip).filter(
+            Trip.vehicle_id == vehicle.vehicle_id
+        ).order_by(Trip.start_time.asc()).first()
+        base_plant = locations.get(first_trip.from_loc) if first_trip and first_trip.from_loc in locations else plant_loc
+
+        # Determine current location name
+        vehicle_current_location_name = None
+        if active_trip and active_trip.status == "In-Transit":
+            to_plant = locations.get(active_trip.to_loc)
+            to_name = to_plant.name if to_plant else active_trip.to_loc
+            vehicle_current_location_name = f"In-Transit to {to_name}"
+        elif active_trip and active_trip.status == "Planned":
+            from_plant = locations.get(active_trip.from_loc)
+            from_name = from_plant.name if from_plant else active_trip.from_loc
+            vehicle_current_location_name = f"{from_name} (Planned)"
+        elif plant_loc:
+            # When trip completes, complete_trip sets vehicle.plant_loc_id = trip.to_loc
+            vehicle_current_location_name = plant_loc.name
+        else:
+            vehicle_current_location_name = vehicle.plant_loc_id or "Unknown"
+
         vehicle_data.append({
             "vehicle_id": vehicle.vehicle_id,
             "type": vehicle.type,
@@ -468,7 +547,10 @@ async def get_resource_analysis(db: Session = Depends(get_db)):
             "capacity_kg": vehicle.capacity_kg,
             "odometer_km": vehicle.odometer_km,
             "plant_loc_id": vehicle.plant_loc_id,
-            "plant_name": plant_loc.name if plant_loc else None,
+            "home_plant_id": base_plant.location_id if base_plant else vehicle.plant_loc_id,
+            "home_plant_name": base_plant.name if base_plant else (plant_loc.name if plant_loc else None),
+            "current_location_name": vehicle_current_location_name,
+            "plant_name": vehicle_current_location_name,
             "plant_location": {"lat": plant_loc.latitude, "lng": plant_loc.longitude} if plant_loc else None,
             "active_trip": {
                 "trip_id": active_trip.trip_id,

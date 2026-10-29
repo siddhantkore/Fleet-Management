@@ -4,6 +4,7 @@ import './ResourceAnalysis.css';
 
 const ResourceAnalysis = () => {
   const [data, setData] = useState({ drivers: [], vehicles: [], summary: {} });
+  const [plants, setPlants] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('drivers');
   const [showModal, setShowModal] = useState(false);
@@ -22,8 +23,18 @@ const ResourceAnalysis = () => {
     }
   };
 
+  const fetchPlants = async () => {
+    try {
+      const res = await api.get('/locations/');
+      setPlants(res.data || []);
+    } catch (error) {
+      console.error('Error fetching plants:', error);
+    }
+  };
+
   useEffect(() => {
     fetchData();
+    fetchPlants();
   }, []);
 
   const handleUpdateLocation = async (e) => {
@@ -106,8 +117,15 @@ const ResourceAnalysis = () => {
                   <td>{d.name}</td>
                   <td>{d.current_status} {d.is_on_leave ? '(On Leave)' : ''}</td>
                   <td>{d.home_plant_name || d.home_plant_id}</td>
-                  <td>{d.current_location ? `${d.current_location.lat.toFixed(4)}, ${d.current_location.lng.toFixed(4)}` : 'Unknown'}</td>
-                  <td>{d.distance_from_home_km !== null ? d.distance_from_home_km : 'N/A'}</td>
+                  <td>
+                    <span className="location-name">{d.current_location_name || d.home_plant_name || 'Unknown'}</span>
+                    {d.current_location && d.current_location.lat !== undefined && d.current_location.lng !== undefined && (
+                      <span className="location-coords" title="GPS Coordinates">
+                        ({Number(d.current_location.lat).toFixed(4)}, {Number(d.current_location.lng).toFixed(4)})
+                      </span>
+                    )}
+                  </td>
+                  <td>{d.distance_from_home_km !== null && d.distance_from_home_km !== undefined ? `${d.distance_from_home_km} km` : 'N/A'}</td>
                   <td>{d.active_trip ? d.active_trip.trip_id : 'None'}</td>
                   <td>
                     <button className="btn-update" onClick={() => openUpdateModal(d)}>Update Location</button>
@@ -127,6 +145,7 @@ const ResourceAnalysis = () => {
                 <th>License Plate</th>
                 <th>Status</th>
                 <th>Home Plant</th>
+                <th>Current Location</th>
                 <th>Odometer</th>
                 <th>Active Trip</th>
               </tr>
@@ -138,8 +157,11 @@ const ResourceAnalysis = () => {
                   <td>{v.type}</td>
                   <td>{v.license_plate}</td>
                   <td>{v.current_status}</td>
-                  <td>{v.plant_name || v.plant_loc_id}</td>
-                  <td>{v.odometer_km} km</td>
+                  <td>{v.home_plant_name || v.plant_name || v.plant_loc_id}</td>
+                  <td>
+                    <span className="location-name">{v.current_location_name || v.plant_name || 'Unknown'}</span>
+                  </td>
+                  <td>{v.odometer_km ?? 0} km</td>
                   <td>{v.active_trip ? v.active_trip.trip_id : 'None'}</td>
                 </tr>
               ))}
@@ -153,6 +175,32 @@ const ResourceAnalysis = () => {
           <div className="modal">
             <h3>Update Location for {selectedDriver?.name}</h3>
             <form onSubmit={handleUpdateLocation}>
+              <div className="form-group">
+                <label>Select Plant:</label>
+                <select
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    borderRadius: '6px',
+                    border: '1px solid #e2e8f0',
+                    fontSize: '0.88rem',
+                    marginBottom: '10px'
+                  }}
+                  onChange={(e) => {
+                    const selected = plants.find(p => p.location_id === e.target.value);
+                    if (selected) {
+                      setUpdateLat(selected.latitude);
+                      setUpdateLng(selected.longitude);
+                    }
+                  }}
+                  defaultValue=""
+                >
+                  <option value="">-- Choose Plant to auto-fill --</option>
+                  {plants.map(p => (
+                    <option key={p.location_id} value={p.location_id}>{p.name} ({p.city})</option>
+                  ))}
+                </select>
+              </div>
               <div className="form-group">
                 <label>Latitude:</label>
                 <input type="number" step="any" value={updateLat} onChange={e => setUpdateLat(e.target.value)} required />
