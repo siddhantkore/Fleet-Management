@@ -17,6 +17,7 @@ from app.models.vehicle import Vehicle
 from app.optimization import optimize_trip
 from app.optimization_engine.fleet_intelligence import evaluate_vehicle_repositioning
 from app.schemas.trip import TripResponse, TripScheduleRequest
+from app.services.sms import TripSMSContext, send_trip_assignment_sms
 
 logger = logging.getLogger(__name__)
 
@@ -123,6 +124,38 @@ def schedule_trip(
     db.add(new_trip)
     db.commit()
     db.refresh(new_trip)
+
+    # ── SMS notification to driver ──────────────────────────────────────────
+    if driver and vehicle:
+        try:
+            from_location_obj = db.query(Location).filter(
+                Location.location_id == new_trip.from_loc
+            ).first()
+            to_location_obj = db.query(Location).filter(
+                Location.location_id == new_trip.to_loc
+            ).first()
+
+            from_name = from_location_obj.name if from_location_obj else new_trip.from_loc
+            to_name = to_location_obj.name if to_location_obj else new_trip.to_loc
+
+            sms_ctx = TripSMSContext(
+                driver_name=driver.name,
+                driver_phone=driver.phone,
+                trip_id=new_trip.trip_id,
+                vehicle_id=vehicle.vehicle_id,
+                vehicle_license_plate=vehicle.license_plate,
+                from_location=from_name,
+                to_location=to_name,
+                start_time=new_trip.start_time,
+                cargo_type=new_trip.cargo_type or "General",
+                cargo_weight_kg=new_trip.cargo_weight or 0.0,
+                distance_km=new_trip.distance_km or 0.0,
+            )
+            send_trip_assignment_sms(sms_ctx)
+        except Exception as sms_exc:
+            logger.error("SMS notification failed (non-fatal): %s", sms_exc)
+    # ───────────────────────────────────────────────────────────────────────
+
     return new_trip
 
 
@@ -230,3 +263,70 @@ def complete_trip(
             logger.error(f"Fleet intelligence evaluation failed: {exc}")
 
     return {"message": "Trip completed", "trip_id": trip_id}
+
+
+# ---------------------------------------------------------------------------
+# Manual SMS endpoint — admin can resend/send a custom message to a driver
+# ---------------------------------------------------------------------------
+
+from pydantic import BaseModel  # noqa: E402 – placed here to keep imports grouped
+
+
+class ManualSMSRequest(BaseModel):
+    """Request body for sending a manual SMS to a driver."""
+
+    driver_id: str
+    message: str
+
+
+@router.post("/notify/sms")
+def send_manual_sms(
+    request: ManualSMSRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Admin endpoint: send an arbitrary SMS to a driver.
+
+    Requires the driver to have a phone number on record.
+    Returns the delivery status (success/failure) without raising if SMS fails.
+    """
+    driver = db.query(Driver).filter(Driver.driver_id == request.driver_id).first()
+    if not driver:
+        raise HTTPException(status_code=404, detail="Driver not found")
+
+    from app.services.sms import _normalise_phone, TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM_NUMBER
+
+    if not all([TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM_NUMBER]):
+        return {
+            "success": False,
+            "reason": "Twilio not configured on the server. "
+                      "Set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN and TWILIO_FROM_NUMBER in .env.",
+        }
+
+    try:
+        from twilio.rest import Client  # type: ignore[import]
+
+        client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
+        to_number = _normalise_phone(driver.phone)
+        msg = client.messages.create(
+            body=f"[Fleet Management - Admin Message]\n{request.message}",
+            from_=TWILIO_FROM_NUMBER,
+            to=to_number,
+        )
+        logger.info(
+            "Manual SMS sent to driver %s (%s). SID=%s",
+            driver.name,
+            to_number,
+            msg.sid,
+        )
+        return {"success": True, "sid": msg.sid, "to": to_number, "driver": driver.name}
+
+    except ImportError:
+        return {
+            "success": False,
+            "reason": "twilio package not installed. Run `pip install twilio`.",
+        }
+    except Exception as exc:
+        logger.error("Manual SMS to driver %s failed: %s", driver.driver_id, exc)
+        return {"success": False, "reason": str(exc)}

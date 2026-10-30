@@ -30,6 +30,10 @@ passlib[bcrypt]==1.7.4            # Password hashing library
 cryptography==41.0.7              # Cryptographic recipes and primitives
 bcrypt==4.0.1                     # Password hashing, pinned to 4.0.1 to avoid passlib compatibility issues
 
+# ==================== SMS NOTIFICATIONS ====================
+
+twilio==8.13.0                 # Twilio SDK for SMS driver notifications (optional — set TWILIO_* env vars)
+
 # ==================== DEVELOPMENT & DEBUGGING ====================
 
 pytest==7.4.3                  # Testing framework (for future)
