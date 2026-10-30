@@ -1,392 +1,53 @@
-# Fleet Management Backend - FastAPI Server
+# Server - Fleet Management System Backend
 
-## Project Structure
+This directory contains the FastAPI backend for the Fleet Management System.
 
-```
-server/
-├── main.py                    # Application entry point
-├── requirements.txt           # Python dependencies
-├── Dockerfile                 # Container configuration
-├── .env                       # Environment variables
-├── .env.example              # Example environment file
-├── .dockerignore             # Docker ignore patterns
-├── STRUCTURE.md              # Detailed structure documentation
-│
-├── app/                       # Main application package
-│   ├── __init__.py           # Package initialization
-│   ├── config.py             # Configuration management
-│   ├── database.py           # Database setup & sessions
-│   ├── models.py             # SQLAlchemy ORM models
-│   ├── schemas.py            # Pydantic validation schemas
-│   ├── utils.py              # Utility functions
-│   │
-│   └── routes/               # API endpoint handlers
-│       ├── __init__.py       # Package initialization
-│       ├── status.py         # Health check & status endpoints
-│       └── contact.py        # Contact submission endpoints
-│
-└── tests/                     # Test suite (future)
-    ├── __init__.py
-    ├── conftest.py           # Pytest configuration
-    └── test_*.py             # Test files
-```
+## Architecture Highlights
+- **FastAPI**: Asynchronous web framework for high-performance API endpoints.
+- **SQLAlchemy (PostgreSQL)**: ORM for robust data modeling and transaction management.
+- **Google OR-Tools**: Constraint programming (CP-SAT) solver used for optimizing vehicle assignments and post-trip repositioning.
+- **WebSockets**: Real-time GPS telemetry broadcasting.
 
-## Quick Start
+## Routers & Endpoints
 
-### Prerequisites
-- Python 3.11+
-- PostgreSQL 16 (or use Docker)
+The API is mounted at `/api/v1` and is divided into the following routers:
 
-### Local Development
+- **Auth** (`routes/auth.py`): User login and registration (`/user/login`, `/user/signup`).
+- **Drivers** (`routes/driver.py`): Driver CRUD operations.
+- **Vehicles** (`routes/vehicle.py`): Vehicle CRUD operations.
+- **Locations** (`routes/location.py`): Plant and warehouse CRUD operations.
+- **Trips** (`routes/trip.py`): Trip scheduling, overlap detection, status updates.
+- **Routes** (`routes/route.py`): Multi-route generation via OpenRouteService and scoring.
+- **Tracking** (`routes/tracking.py`): GPS ingestion, WebSockets (`/tracking/ws`), trip progress, and resource analysis.
+- **Reports** (`routes/reports.py`): Filterable aggregate data and CSV export endpoints.
+- **Analysis** (`routes/analysis.py`): LLM-driven insights for route comparisons and trip summaries (using Groq/Ollama).
+- **Fleet Intelligence** (`routes/fleet_intelligence.py`): Vehicle repositioning recommendations and AI explanations.
 
-1. **Create Virtual Environment**
-```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-```
+## Running Locally
 
-2. **Install Dependencies**
-```bash
-pip install -r requirements.txt
-```
+1. Create and activate a Python virtual environment:
+   ```bash
+   python3.11 -m venv venv
+   source venv/bin/activate
+   ```
+2. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+3. Run the development server:
+   ```bash
+   uvicorn main:app --reload
+   ```
 
-3. **Setup Environment**
-```bash
-cp .env.example .env
-# Edit .env with your database credentials
-```
+## Environment Variables
+The following environment variables should be defined in a `.env` file inside the `server/` directory:
+- `DATABASE_URL` (PostgreSQL connection string)
+- `JWT_SECRET_KEY`
+- `OPENROUTESERVICE_API_KEY`
+- `GROQ_API_KEY` (Optional, for AI summaries)
+- `LLM_PROVIDER` (e.g., "groq" or "ollama")
 
-4. **Run Application**
-```bash
-python main.py
-# Or with auto-reload:
-uvicorn main:app --reload
-```
-
-5. **Access API**
-- API: http://localhost:8000
-- Docs: http://localhost:8000/docs
-- ReDoc: http://localhost:8000/redoc
-
-### Docker Setup
-
-```bash
-docker-compose up --build
-```
-
----
-
-## Module Guide
-
-### `main.py` - Application Entry Point
-- Creates and configures FastAPI app
-- Registers middleware (CORS)
-- Initializes database on startup
-- Includes all route modules
-
-### `app/config.py` - Configuration
-- Centralized environment settings
-- Database URL
-- API metadata
-- Debug and logging settings
-
-### `app/database.py` - Database Management
-- SQLAlchemy engine configuration
-- Session factory
-- ORM base class
-- Database initialization
-- Session dependency injection
-
-### `app/models.py` - Data Models
-- SQLAlchemy ORM models
-- `ContactSubmission` - Current implementation
-- Template models for Phase 2 features
-
-### `app/schemas.py` - Data Validation
-- Pydantic request/response models
-- Input validation
-- API documentation examples
-- Email validation
-
-### `app/routes/` - API Endpoints
-
-#### `status.py`
-- `GET /` - Server status
-- `GET /health` - Database health check
-
-#### `contact.py`
-- `POST /api/contact` - Create submission
-- `GET /api/contact` - List submissions
-- `GET /api/contact/{id}` - Get specific submission
-- `DELETE /api/contact/{id}` - Delete submission
-
-### `app/utils.py` - Utility Functions
-- Common helper functions
-- Formatting utilities
-- Logging helpers
-
----
-
-## API Endpoints
-
-### Status Endpoints
-```bash
-# Server status
-curl http://localhost:8000/
-
-# Health check
-curl http://localhost:8000/health
-```
-
-### Contact Endpoints
-```bash
-# Create contact
-curl -X POST http://localhost:8000/api/contact \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "John Doe",
-    "email": "john@example.com",
-    "phone": "1234567890",
-    "subject": "Fleet Inquiry",
-    "message": "I am interested in your services"
-  }'
-
-# List all contacts
-curl http://localhost:8000/api/contact
-
-# Get specific contact
-curl http://localhost:8000/api/contact/1
-
-# Delete contact
-curl -X DELETE http://localhost:8000/api/contact/1
-```
-
-### Tracking Endpoints
-```bash
-# Post location update (driver id in URL)
-curl -X POST http://localhost:8000/api/v1/tracking/owntracks/D002 \
-  -H "Content-Type: application/json" \
-  -d '{
-    "metadata": { "user_id": "D002" },
-    "timestamp": { "captured_at": 1773250058863 },
-    "location": { "coords": { "lat": 16.9431033, "lng": 74.4147417 } },
-    "context": { "activity_type": "idle", "battery_level": 0.85, "is_charging": false }
-  }'
-
-# Post location update (driver id from payload metadata.user_id)
-curl -X POST http://localhost:8000/api/v1/tracking/owntracks \
-  -H "Content-Type: application/json" \
-  -d '{
-    "metadata": { "user_id": "D002" },
-    "timestamp": { "captured_at": 1773250058863 },
-    "location": { "coords": { "lat": 16.9431033, "lng": 74.4147417 } }
-  }'
-
-# Get latest live locations
-curl http://localhost:8000/api/v1/tracking/locations
-```
-
----
-
-## Database
-
-### Tables
-
-#### `contact_submissions`
-- `id` (INT, PK) - Auto-incremented ID
-- `name` (VARCHAR 255) - Contact name
-- `email` (VARCHAR 255) - Email address
-- `phone` (VARCHAR 20) - Phone number
-- `subject` (VARCHAR 500) - Subject line
-- `message` (TEXT) - Message content
-- `created_at` (TIMESTAMP) - Creation timestamp
-
-### Schema Ready for Phase 2
-- `vehicles` - Fleet vehicle data
-- `drivers` - Driver information  
-- `locations` - Plant locations
-- `trips` - Trip tracking
-- `maintenance` - Service records
-
----
-
-## Security
-
-### Current
-CORS enabled  
-Pydantic validation  
-SQLAlchemy ORM protection  
-Email validation  
-
-### Production Checklist
-- [ ] Restrict CORS origins
-- [ ] Add authentication
-- [ ] Add rate limiting
-- [ ] Enable HTTPS/TLS
-- [ ] Add request logging
-- [ ] Implement secrets management
-- [ ] Add API key validation
-- [ ] Database encryption
-
----
+*(Refer to `../SETUP_GUIDE.md` for full configuration details).*
 
 ## Testing
-
-Test framework is ready for implementation:
-
-```bash
-# Run all tests
-pytest
-
-# Run with verbose output
-pytest -v
-
-# Run specific test file
-pytest tests/test_contact.py
-
-# Run with coverage
-pytest --cov=app --cov-report=html
-```
-
----
-
-## Adding New Features
-
-### Example: Add a Vehicle Endpoint
-
-1. **Add Model** (`app/models.py`):
-```python
-class Vehicle(Base):
-    __tablename__ = "vehicles"
-    id = Column(Integer, primary_key=True)
-    # ... fields ...
-```
-
-2. **Add Schemas** (`app/schemas.py`):
-```python
-class VehicleCreate(BaseModel):
-    # ... fields ...
-
-class VehicleResponse(VehicleCreate):
-    id: int
-```
-
-3. **Create Routes** (`app/routes/vehicle.py`):
-```python
-from fastapi import APIRouter
-router = APIRouter(prefix="/api/vehicle", tags=["vehicle"])
-
-@router.post("", response_model=VehicleResponse)
-def create_vehicle(vehicle: VehicleCreate, db: Session = Depends(get_db)):
-    # implementation
-```
-
-4. **Register Routes** (`main.py`):
-```python
-from app.routes import vehicle
-app.include_router(vehicle.router)
-```
-
----
-
-## Documentation
-
-### Detailed Documentation
-- [Project Structure Guide](./STRUCTURE.md) - In-depth structure explanation
-- [Requirements](../docs/REQUIREMENTS.md) - System requirements
-- [Technical Design](../docs/TECHNICAL_DESIGN_DOCUMENT.md) - Architecture
-- [Data Schema](../docs/DATA.md) - Data models
-
-### API Documentation (When Running)
-- Swagger UI: http://localhost:8000/docs
-- ReDoc: http://localhost:8000/redoc
-
----
-
-## Troubleshooting
-
-### Database Connection Failed
-```bash
-# Check PostgreSQL is running
-psql -U fleet_user -h localhost -d fleet_management
-
-# Check environment variables
-cat .env
-
-# Check Docker logs
-docker-compose logs db
-```
-
-### Import Errors
-```bash
-# Verify virtual environment is active
-source venv/bin/activate
-
-# Reinstall dependencies
-pip install -r requirements.txt
-```
-
-### Port Already in Use
-```bash
-# Find process on port 8000
-lsof -i :8000
-
-# Kill process
-kill -9 <PID>
-```
-
----
-
-## Dependencies
-
-### Core
-- **fastapi** - Web framework
-- **uvicorn** - ASGI server
-- **sqlalchemy** - ORM
-- **psycopg2-binary** - PostgreSQL adapter
-- **pydantic** - Data validation
-
-### Security
-- **python-jose** - JWT tokens
-- **passlib** - Password hashing
-- **cryptography** - Encryption
-
-### Development
-- **pytest** - Testing
-- **black** - Code formatting
-- **flake8** - Linting
-
-See [requirements.txt](./requirements.txt) for complete list.
-
----
-
-## Next Steps
-
-### Phase 1 (Current)
-- [x] FastAPI server setup
-- [x] PostgreSQL integration
-- [x] Contact form backend
-- [x] Structured project layout
-- [x] Docker support
-
-### Phase 2 (Planned)
-- [ ] Vehicle management endpoints
-- [ ] Driver management endpoints
-- [ ] Trip planning endpoints
-- [ ] Maintenance tracking
-
-### Phase 3 (Planned)
-- [ ] Optimization engine integration
-- [ ] Real-time GPS tracking
-- [ ] Compliance alerts
-- [ ] KPI dashboard
-
----
-
-## Related Files
-
-- Frontend: `../client/` - React application
-- Documentation: `../docs/` - System requirements
-- Docker Setup: `../docker-compose.yml`
-
----
+We use `pytest` for unit and integration testing. Run `pytest` from this directory to execute the test suite.

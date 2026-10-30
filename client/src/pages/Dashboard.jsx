@@ -8,6 +8,8 @@ import VehicleManagement from './VehicleManagement';
 import TripManagement from './TripManagement';
 import RouteAnalysis from './RouteAnalysis';
 import FleetIntelligence from './FleetIntelligence';
+import Reports from './Reports';
+import ResourceAnalysis from './ResourceAnalysis';
 import api from '../services/api';
 import './Dashboard.css';
 
@@ -44,6 +46,8 @@ const Dashboard = () => {
             path: '/dashboard/fleet-intelligence', label: 'Fleet Intelligence', icon: 'truck', color: '#7c3aed',
             badge: recCount > 0 ? recCount : null,
         },
+        { path: '/dashboard/reports', label: 'Reports', icon: 'clipboard', color: '#10b981' },
+        { path: '/dashboard/resources', label: 'Resource Analysis', icon: 'user', color: '#6366f1' },
         { path: '/tracking', label: 'Live Tracking', icon: 'mappin', color: '#0891b2' },
     ];
 
@@ -54,6 +58,7 @@ const Dashboard = () => {
             case 'user': return <span style={style}><Icons.User size={18} /></span>;
             case 'truck': return <span style={style}><Icons.Truck size={18} /></span>;
             case 'mappin': return <span style={style}><Icons.MapPin size={18} /></span>;
+            case 'clipboard': return <span style={style}><Icons.Clipboard size={18} /></span>;
             default: return <span style={style}><Icons.Truck size={18} /></span>;
         }
     };
@@ -98,6 +103,8 @@ const Dashboard = () => {
                         <Route path="trips" element={<TripManagement />} />
                         <Route path="routes" element={<RouteAnalysis />} />
                         <Route path="fleet-intelligence" element={<FleetIntelligence />} />
+                        <Route path="reports" element={<Reports />} />
+                        <Route path="resources" element={<ResourceAnalysis />} />
                         <Route path="/" element={<div className="welcome-screen">
                             <div className="welcome-icon"><Icons.Truck size={48} /></div>
                             <h1>Welcome back, Admin</h1>

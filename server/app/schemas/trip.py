@@ -34,6 +34,7 @@ class TripBase(BaseModel):
     cargo_weight: Optional[float] = None
     cargo_volume_cbm: Optional[float] = 0.0
     cargo_type: Optional[str] = "General"
+    estimated_duration_min: Optional[float] = None
     status: str
     summary: Optional[str] = None
     route_data: Optional[str] = None

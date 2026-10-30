@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import api from '../services/api';
 import './RouteAnalysis.css';
@@ -152,6 +152,19 @@ const buildRouteAnalysisPayload = (routeData, displayRoutes) => {
         selected_index: routeData?.selected_index ?? (selectedIndexFromRoutes >= 0 ? selectedIndexFromRoutes : null),
         routes,
     };
+};
+
+const MapBoundsUpdater = ({ routes }) => {
+    const map = useMap();
+    useEffect(() => {
+        const allCoords = routes.flatMap(r =>
+            (r.geometry_coords || []).map(c => [c[1], c[0]])
+        );
+        if (allCoords.length > 1) {
+            map.fitBounds(allCoords, { padding: [50, 50], maxZoom: 14 });
+        }
+    }, [routes, map]);
+    return null;
 };
 
 const RouteAnalysis = () => {
@@ -338,6 +351,7 @@ const RouteAnalysis = () => {
                         style={{ height: '500px', width: '100%' }}
                     >
                         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                        <MapBoundsUpdater routes={displayRoutes} />
 
                         {plants.map(p => (
                             <Marker key={p.location_id} position={[p.latitude, p.longitude]} icon={plantIcon}>
@@ -402,6 +416,11 @@ const RouteAnalysis = () => {
                                 </div>
                             ))}
                         </div>
+                        {displayRoutes.length === 1 && (
+                            <div className="ra-no-alt-notice">
+                                <p>ℹ️ No alternate routes available for this route segment. The routing service returned a single optimal path.</p>
+                            </div>
+                        )}
 
                         {/* AI analysis section */}
                         {selectedTrip && (

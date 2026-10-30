@@ -65,10 +65,10 @@ def _fetch_ors_alternatives(
                 [start.longitude, start.latitude],
                 [end.longitude, end.latitude],
             ],
-            "alternative_routes": {
-                "share_factor": 0.6,
+        "alternative_routes": {
+                "share_factor": 0.5,
                 "target_count": max_alternatives,
-                "weight_factor": 1.4,
+                "weight_factor": 1.6,
             },
             "geometry": True,
             "instructions": False,

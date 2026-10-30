@@ -4,6 +4,55 @@ import L from 'leaflet';
 import api from '../services/api';
 import './TripManagement.css';
 
+// ── SMS modal component ──────────────────────────────────────────────────────
+const SMSModal = ({ driverId, driverName, onClose }) => {
+    const [message, setMessage] = React.useState('');
+    const [status, setStatus] = React.useState(null);
+
+    const handleSend = async () => {
+        if (!message.trim()) return;
+        setStatus('sending');
+        try {
+            const resp = await api.post('/trips/notify/sms', { driver_id: driverId, message });
+            setStatus(resp.data);
+        } catch (err) {
+            setStatus({ success: false, reason: err.response?.data?.detail || 'Request failed' });
+        }
+    };
+
+    return (
+        <div className="sms-modal-overlay" onClick={onClose}>
+            <div className="sms-modal" onClick={e => e.stopPropagation()}>
+                <h3>Send SMS to Driver</h3>
+                <p className="sms-hint">Driver: <strong>{driverName}</strong> ({driverId})</p>
+                <textarea
+                    rows={4}
+                    placeholder="Type your message to the driver..."
+                    value={message}
+                    onChange={e => setMessage(e.target.value)}
+                    disabled={status === 'sending' || status?.success}
+                />
+                {status && status !== 'sending' && (
+                    <div className={`sms-status ${status.success ? 'sms-ok' : 'sms-err'}`}>
+                        {status.success
+                            ? `SMS sent to ${status.to} (${status.driver})`
+                            : `Failed: ${status.reason}`}
+                    </div>
+                )}
+                <div className="sms-modal-actions">
+                    {!status?.success && (
+                        <button className="submit-btn" onClick={handleSend} disabled={status === 'sending' || !message.trim()}>
+                            {status === 'sending' ? 'Sending...' : 'Send SMS'}
+                        </button>
+                    )}
+                    <button className="cancel-btn" onClick={onClose}>Close</button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+
 // Smaller icons for cleaner map
 const plantIcon = new L.Icon({
     iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
@@ -30,7 +79,19 @@ const CARGO_DENSITY = {
 };
 
 const SelectionMap = ({ plants, onPointSelect, selectedFrom, selectedTo, routes }) => {
-    useMapEvents({ click(e) { onPointSelect(e.latlng); } });
+    const map = useMapEvents({ click(e) { onPointSelect(e.latlng); } });
+
+    useEffect(() => {
+        if (routes && routes.length > 0) {
+            const allCoords = routes.flatMap(r =>
+                (r.geometry_coords || []).map(c => [c[1], c[0]])
+            ).filter(c => c[0] && c[1]);
+            if (allCoords.length > 1) {
+                map.fitBounds(allCoords, { padding: [40, 40], maxZoom: 13 });
+            }
+        }
+    }, [routes, map]);
+
     return (
         <>
             <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
@@ -161,6 +222,7 @@ const TripManagement = () => {
     const [searchTarget, setSearchTarget] = useState(null); // 'from' or 'to'
     const searchTimeout = useRef(null);
     const [expandedTripId, setExpandedTripId] = useState(null);
+    const [smsModal, setSmsModal] = useState(null); // null | { driverId, driverName }
 
     const [formData, setFormData] = useState({
         from_loc: '', to_loc: '', start_time: '', cargo_weight: 0,
@@ -306,7 +368,17 @@ const TripManagement = () => {
         return null;
     };
 
-    const getPlantName = (id) => plants.find(p => p.location_id === id)?.name || id;
+    const getPlantName = (id) => {
+        if (!id) return '—';
+        const plant = plants.find(p => p.location_id === id);
+        if (plant) return plant.name;
+        if (id.startsWith('LOC-')) return 'Custom Location';
+        if (id.includes(',')) {
+            const [lat, lng] = id.split(',');
+            return `Coords: ${parseFloat(lat).toFixed(4)}, ${parseFloat(lng).toFixed(4)}`;
+        }
+        return id;
+    };
 
     return (
         <div className="trip-management">
@@ -336,7 +408,7 @@ const TripManagement = () => {
                                         onClick={() => setSelectionMode(selectionMode === 'from' ? null : 'from')}>Pick</button>
                                 </div>
                                 <div className="search-bar-wrapper">
-                                    <input type="text" placeholder="Search place... e.g. 'Chakan Plant Pune'"
+                                    <input type="text" placeholder="Or search any location, e.g. 'Mumbai Port' or 'MIDC Nashik'"
                                         value={searchTarget === 'from' ? searchQuery : ''}
                                         onFocus={() => setSearchTarget('from')}
                                         onChange={e => handleSearch(e.target.value, 'from')} />
@@ -350,6 +422,9 @@ const TripManagement = () => {
                                         </div>
                                     )}
                                 </div>
+                                {formData.from_loc && !plants.find(p => p.location_id === formData.from_loc) && (
+                                    <div className="anon-loc-badge">Custom location selected (coordinates saved automatically)</div>
+                                )}
                             </div>
 
                             {/* To Location */}
@@ -367,7 +442,7 @@ const TripManagement = () => {
                                         onClick={() => setSelectionMode(selectionMode === 'to' ? null : 'to')}>Pick</button>
                                 </div>
                                 <div className="search-bar-wrapper">
-                                    <input type="text" placeholder="Search place... e.g. 'Bhiwandi Warehouse'"
+                                    <input type="text" placeholder="Or search any location, e.g. 'Pune Railway Station'"
                                         value={searchTarget === 'to' ? searchQuery : ''}
                                         onFocus={() => setSearchTarget('to')}
                                         onChange={e => handleSearch(e.target.value, 'to')} />
@@ -381,6 +456,9 @@ const TripManagement = () => {
                                         </div>
                                     )}
                                 </div>
+                                {formData.to_loc && !plants.find(p => p.location_id === formData.to_loc) && (
+                                    <div className="anon-loc-badge">Custom location selected (coordinates saved automatically)</div>
+                                )}
                             </div>
 
                             {/* Start Time only */}
@@ -544,6 +622,12 @@ const TripManagement = () => {
                                                         <h4>Vehicle & Driver</h4>
                                                         <p><strong>Vehicle ID:</strong> {trip.vehicle_id}</p>
                                                         <p><strong>Driver ID:</strong> {trip.driver_id}</p>
+                                                        <button
+                                                            className="sms-driver-btn"
+                                                            onClick={(e) => { e.stopPropagation(); setSmsModal({ driverId: trip.driver_id, driverName: trip.driver_id }); }}
+                                                        >
+                                                            Send SMS to Driver
+                                                        </button>
                                                         <p><strong>Cargo Volume:</strong> {trip.cargo_volume_cbm} cbm</p>
                                                         <p><strong>Cargo Type:</strong> {trip.cargo_type}</p>
                                                     </div>
@@ -561,6 +645,15 @@ const TripManagement = () => {
                     </tbody>
                 </table>
             </div>
+        </div>
+
+            {smsModal && (
+                <SMSModal
+                    driverId={smsModal.driverId}
+                    driverName={smsModal.driverName}
+                    onClose={() => setSmsModal(null)}
+                />
+            )}
         </div>
     );
 };

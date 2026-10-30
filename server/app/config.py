@@ -31,3 +31,9 @@ OPENROUTES_API_KEY = os.getenv("OPENROUTES_API_KEY", "")
 OPENROUTES_BASE_URL = os.getenv("OPENROUTES_BASE_URL", "https://api.openrouteservice.org")
 OPENROUTES_PROFILE = os.getenv("OPENROUTES_PROFILE", "driving-hgv")
 OPENROUTES_TIMEOUT_SECONDS = float(os.getenv("OPENROUTES_TIMEOUT_SECONDS", "6"))
+
+# SMS / Twilio configuration
+# Set these in your .env to enable automatic driver SMS notifications on trip creation.
+TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID", "")
+TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN", "")
+TWILIO_FROM_NUMBER = os.getenv("TWILIO_FROM_NUMBER", "")  # E.164 e.g. +12015550123

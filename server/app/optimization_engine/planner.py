@@ -275,5 +275,6 @@ def optimize_trip(
         "continuation_distance_km": continuation.distance_km,
         "continuation_estimated_cost": continuation.estimated_cost,
         "route_data": route_data_json,
+        "estimated_duration_min": round((route_distance_km / 50.0) * 60.0 * 1.15 + 120.0, 1),
         "generated_at": datetime.utcnow().isoformat(),
     }, None
